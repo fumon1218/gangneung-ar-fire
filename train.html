@@ -5,6 +5,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@500;700;900&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;overflow:hidden;background:#f6ead8;font-family:'Noto Sans KR',sans-serif;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  *{touch-action:none}
   canvas{display:block;touch-action:none}
   .hidden{display:none!important}
   #top{position:fixed;top:max(8px,env(safe-area-inset-top));left:8px;right:8px;display:flex;gap:6px;align-items:flex-start;z-index:5;pointer-events:none}
@@ -66,6 +67,13 @@
   <p>교실의 불을 모두 해결했어요.<br>안전체험관에서 진짜 소화기로 한 번 더 연습해요!</p>
   <button class="big" id="again">다시 하기</button> <a class="big gray" href="index.html">🏠 본부로</a>
 </div></div>
+<script>// iOS 사파리 확대(두 손가락·두 번 탭) 막기
+(() => { const no = e => e.preventDefault(), o = { passive: false };
+  document.addEventListener('gesturestart', no, o); document.addEventListener('gesturechange', no, o); document.addEventListener('gestureend', no, o);
+  document.addEventListener('touchmove', e => { if (e.touches.length > 1 || (e.scale && e.scale !== 1)) e.preventDefault(); }, o);
+  let last = 0; document.addEventListener('touchend', e => { const n = Date.now(); if (n - last < 320 && !e.target.closest('input,textarea,select')) e.preventDefault(); last = n; }, o);
+  document.addEventListener('dblclick', no, o); })();
+</script>
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
