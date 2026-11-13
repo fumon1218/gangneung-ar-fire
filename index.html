@@ -248,34 +248,116 @@ const waterP = new Particles(1800, THREE.NormalBlending, 'water');
 const bubbleP = new Particles(500, THREE.NormalBlending, 'bubble');
 const heavyP = new Particles(600, THREE.NormalBlending, 'heavy');
 const allP = [smokeP, fireP, steamP, waterP, bubbleP, heavyP];
+// ---- 이어진 물줄기 (리본) ----
+const JVS = `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`;
+const JFS = `varying vec2 vUv; uniform float uT; uniform vec3 uC; uniform float uA;
+float h(float n){return fract(sin(n)*43758.5453);}
+void main(){ float x=abs(vUv.x*2.-1.); float core=1.-smoothstep(.0,1.,x); float edge=smoothstep(1.,.55,x);
+ float flow=.65+.35*sin(vUv.y*55.-uT*38.+sin(vUv.y*13.+uT*9.)*2.);
+ float br=smoothstep(.97,1.,vUv.y)*0.; float a=edge*(.55+.45*flow)*uA*smoothstep(0.,.08,vUv.y)*(1.-smoothstep(.9,1.,vUv.y)*.6);
+ vec3 c=mix(uC, vec3(1.), pow(core,6.)*.75+ (flow-.65)*.4);
+ gl_FragColor=vec4(c, a); }`;
+class Jet {
+  constructor(n = 32) {
+    this.n = n; const pos = new Float32Array((n + 1) * 2 * 3), uv = new Float32Array((n + 1) * 2 * 2), idx = [];
+    for (let i = 0; i <= n; i++) { uv.set([0, i / n, 1, i / n], i * 4); if (i < n) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } }
+    const g = this.g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); g.setIndex(idx);
+    this.mat = new THREE.ShaderMaterial({ vertexShader: JVS, fragmentShader: JFS, transparent: true, depthWrite: false, depthTest: false, side: THREE.DoubleSide, uniforms: { uT: { value: 0 }, uC: { value: new THREE.Color(.5, .8, 1) }, uA: { value: .9 } } });
+    this.m = new THREE.Mesh(g, this.mat); this.m.frustumCulled = false; this.m.renderOrder = 4; this.m.visible = false; stage.add(this.m);
+  }
+  // from→to 포물선, 폭 w0→w1, eye=카메라(무대 좌표)
+  set(from, v, T, w0, w1, eye, t, tint) {
+    const P = this.g.attributes.position.array, p = V(), d = V(), side = V();
+    for (let i = 0; i <= this.n; i++) {
+      const u = i / this.n, tt = u * T; p.set(from.x + v.x * tt, from.y + v.y * tt - 4.9 * tt * tt, from.z + v.z * tt);
+      d.set(v.x, v.y - 9.8 * tt, v.z).normalize(); side.crossVectors(d, V().subVectors(eye, p)).normalize();
+      const w = (w0 + (w1 - w0) * u) * (1 + .12 * Math.sin(u * 30 - t * 25)) / 2;
+      P.set([p.x - side.x * w, p.y - side.y * w, p.z - side.z * w, p.x + side.x * w, p.y + side.y * w, p.z + side.z * w], i * 6);
+    }
+    this.g.attributes.position.needsUpdate = true; this.mat.uniforms.uT.value = t; this.mat.uniforms.uC.value.setRGB(...tint); this.m.visible = true;
+  }
+}
+const jets = [new Jet(), new Jet()];
+const hideJets = () => jets.forEach(j => j.m.visible = false);
+// 물이 닿는 곳: 튀는 물방울
+function splashAt(p, n, power = 1) {
+  for (let i = 0; i < n; i++) waterP.spawn(p.clone().add(V(rnd(.15), rnd(.15), rnd(.15))), V(rnd(2.2 * power), (.6 + Math.random() * 2) * power, rnd(2.2 * power)), .45 + Math.random() * .3, .06, .14);
+  if (Math.random() < .3) steamP.spawn(p.clone(), V(rnd(.3), .4, rnd(.3)), .6, .2, .6);
+}
 
-// ================= 소리 =================
-let ac = null, soundOn = true;
-function audio() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { } } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
-function noise(dur, f0, f1, vol, type = 'lowpass') {
+// ================= 소리 (파일 없이 직접 합성) =================
+let ac = null, soundOn = true, master = null;
+try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { } // 아이폰 무음 스위치여도 소리 나게
+function audio() {
+  if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)();
+    const comp = ac.createDynamicsCompressor(); master = ac.createGain(); master.gain.value = .9; master.connect(comp).connect(ac.destination);
+    const b = ac.createBuffer(1, 1, 22050), src = ac.createBufferSource(); src.buffer = b; src.connect(master); src.start(); } catch (e) { } }
+  if (ac && ac.state !== 'running') ac.resume(); return ac;
+}
+const OUT = () => master || ac.destination;
+const nbuf = {};
+function noiseBuf(kind, sec = 2) {
+  if (nbuf[kind]) return nbuf[kind];
+  const b = ac.createBuffer(1, ac.sampleRate * sec, ac.sampleRate), d = b.getChannelData(0); let last = 0;
+  for (let i = 0; i < d.length; i++) {
+    const w = Math.random() * 2 - 1;
+    if (kind === 'brown') { last = (last + .02 * w) / 1.02; d[i] = last * 3.5; }
+    else if (kind === 'crackle') { last = (last + .02 * w) / 1.02; d[i] = last * 1.2 + (Math.random() < .0009 ? w * 2.2 : 0) + (Math.random() < .004 ? w * .5 : 0); }
+    else d[i] = w;
+  }
+  return nbuf[kind] = b;
+}
+function noise(dur, f0, f1, vol, type = 'lowpass', kind = 'white', q = 1) {
   if (!soundOn || !audio()) return; const t = ac.currentTime;
-  const b = ac.createBuffer(1, ac.sampleRate * dur, ac.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  const s = ac.createBufferSource(); s.buffer = b; const f = ac.createBiquadFilter(); f.type = type;
+  const s = ac.createBufferSource(); s.buffer = noiseBuf(kind); s.loop = true; const f = ac.createBiquadFilter(); f.type = type; f.Q.value = q;
   f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
-  const g = ac.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .06); g.gain.exponentialRampToValueAtTime(.001, t + dur);
-  s.connect(f).connect(g).connect(ac.destination); s.start();
+  const g = ac.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .04); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  s.connect(f).connect(g).connect(OUT()); s.start(t); s.stop(t + dur + .05);
 }
-function chime(notes) {
-  if (!soundOn || !audio()) return; const t = ac.currentTime;
-  notes.forEach((n, i) => { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.value = n;
-    g.gain.setValueAtTime(0, t + i * .12); g.gain.linearRampToValueAtTime(.18, t + i * .12 + .02); g.gain.exponentialRampToValueAtTime(.001, t + i * .12 + .5);
-    o.connect(g).connect(ac.destination); o.start(t + i * .12); o.stop(t + i * .12 + .6); });
+function tone(type, f0, f1, dur, vol, delay = 0, lp = 0) {
+  if (!soundOn || !audio()) return; const t = ac.currentTime + delay;
+  const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .02); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  let node = o.connect(g); if (lp) { const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = lp; g.connect(f); node = f; }
+  node.connect(OUT()); o.start(t); o.stop(t + dur + .05);
 }
-const sfx = { breath: () => noise(1.6, 900, 160, .35), out: () => chime([660, 880]), win: () => chime([523, 659, 784, 1047]), found: () => chime([440, 554, 659]) };
-let hoseSnd = null;
+function chime(notes) { notes.forEach((n, i) => { tone('triangle', n, n, .5, .18, i * .12); tone('sine', n * 2, n * 2, .3, .05, i * .12); }); }
+// 악당별 울음소리
+const ROAR = {
+  dragon:  () => { tone('sawtooth', 190, 80, 1.1, .32, 0, 900); tone('sawtooth', 140, 60, 1.2, .2, .05, 600); noise(1.1, 1200, 300, .2); },
+  golem:   () => { tone('sawtooth', 75, 40, 1.4, .45, 0, 350); noise(1.4, 400, 80, .35, 'lowpass', 'brown'); },
+  phoenix: () => { tone('triangle', 900, 1600, .35, .2); tone('triangle', 1500, 700, .6, .18, .3); tone('sine', 2400, 1800, .5, .06, .3); },
+  boss:    () => { tone('square', 220, 110, 1, .12, 0, 1500); tone('square', 223, 330, 1, .1, 0, 1500); tone('sine', 60, 40, 1, .3); },
+  mummy:   () => { tone('sawtooth', 150, 105, 1.4, .25, 0, 700); tone('sawtooth', 152, 100, 1.4, .15, .1, 500); },
+};
+const sfx = {
+  roar: () => (ROAR[(ST[cur] && ST[cur].villain) || 'dragon'] || ROAR.dragon)(),
+  breath: () => { noise(1.8, 300, 2500, .3, 'bandpass', 'white', .8); noise(1.8, 200, 120, .35, 'lowpass', 'brown'); },
+  ignite: () => { noise(.6, 3000, 500, .3, 'bandpass'); tone('sine', 120, 50, .5, .3); },
+  out: () => { noise(1.4, 7000, 1800, .4, 'highpass'); noise(1, 1500, 400, .2, 'bandpass'); chime([660, 880, 1175]); },
+  win: () => chime([523, 659, 784, 1047, 1319]), found: () => chime([440, 554, 659]),
+  pop: () => { tone('sine', 520, 140, .18, .35); noise(.12, 2500, 800, .2, 'bandpass'); },
+  boing: () => { tone('sine', 260, 640, .25, .3); tone('sine', 520, 900, .2, .08); },
+  thump: () => { tone('sine', 140, 38, .45, .55); noise(.3, 600, 120, .3, 'lowpass', 'brown'); },
+  splash: () => { noise(.45, 2500, 500, .3, 'bandpass', 'white', .7); noise(.3, 800, 200, .2); },
+  blub: () => { const f = 300 + Math.random() * 500; tone('sine', f, f * 2.2, .09, .16); },
+};
+// 계속 나는 소리 (호스, 불, 치익)
+function loopSnd(kind, type, freq, q = 1) {
+  const o = { g: null, on(v) {
+    if (!soundOn || !audio()) { v = 0; if (!this.g) return; }
+    if (!this.g) { const s = ac.createBufferSource(); s.buffer = noiseBuf(kind); s.loop = true; const f = ac.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+      this.f = f; this.g = ac.createGain(); this.g.gain.value = 0; s.connect(f).connect(this.g).connect(OUT()); s.start(); }
+    this.g.gain.setTargetAtTime(v, ac.currentTime, .08); } };
+  return o;
+}
+const fireSnd = loopSnd('crackle', 'lowpass', 2600), sizzleSnd = loopSnd('white', 'highpass', 5200), hoseSnd = loopSnd('white', 'bandpass', 1800, .9);
+const HOSE_TONE = { twin: [1800, .14], ice: [4200, .12], fountain: [900, .2], bubble: [700, .05], burst: [1500, .05], balloon: [1500, .04], ball: [1500, .04], ring: [2400, .05], cannon: [1100, .05] };
 function hoseSound(on) {
-  if (on && !hoseSnd && soundOn && audio()) {
-    const b = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    const s = ac.createBufferSource(); s.buffer = b; s.loop = true; const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2200;
-    const g = ac.createGain(); g.gain.value = .12; s.connect(f).connect(g).connect(ac.destination); s.start(); hoseSnd = s;
-  } else if (!on && hoseSnd) { try { hoseSnd.stop(); } catch (e) { } hoseSnd = null; }
+  if (!on) { hoseSnd.on(0); return; }
+  const [f, v] = HOSE_TONE[HEROES[heroKey].mode] || [1800, .12]; hoseSnd.on(v); if (hoseSnd.f) hoseSnd.f.frequency.setTargetAtTime(f, ac.currentTime, .05);
 }
-$('sound').onclick = () => { soundOn = !soundOn; $('sound').textContent = soundOn ? '🔊' : '🔇'; if (!soundOn) hoseSound(false); };
+$('sound').onclick = () => { soundOn = !soundOn; $('sound').textContent = soundOn ? '🔊' : '🔇'; if (!soundOn) { hoseSnd.on(0); fireSnd.on(0); sizzleSnd.on(0); } };
 
 // ================= 모델 =================
 function b64buf(id) { const el = document.getElementById(id); if (!el) return null; const s = atob(el.textContent.trim()); const b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b.buffer; }
@@ -312,7 +394,7 @@ const aimRing = new THREE.Mesh(new THREE.RingGeometry(.35, .5, 32), new THREE.Me
 aimRing.renderOrder = 6; aimRing.visible = false; stage.add(aimRing);
 
 function setupStation(i) {
-  cur = i; rebreath = 0;
+  cur = i; rebreath = 0; groundDone = false;
   { const c = ST[i].st >= 6 ? 'in' : 'out'; if (c !== course) { course = c; updChips(); } }
   animals.forEach(a => a.g.scale.setScalar((ST[i].animal || .8) / .8 * (a.lead ? 1.3 : 1))); const s = ST[i]; fire = null; breath = null; allP.forEach(p => p.clear());
   const sc = (s.animal || .8) / .8; animals.forEach((a, k) => { const x = [0, -1.3, 1.3][k] * sc; a.g.position.set(x, s.ground, (s.w > 1 ? 1.4 : 1.1) * sc + (a.lead ? .4 * sc : 0)); a.g.visible = true; });
@@ -322,9 +404,23 @@ function setupStation(i) {
     if (anims.length) { mixer = new THREE.AnimationMixer(dragonModel); for (const c of anims) mixAct[c.name] = mixer.clipAction(c);
       const base = mixAct.Walk || mixAct.Fly; if (base) base.play(); }
     const ds = s.dragon || (vil.fly ? 6 : 1.6); dragonModel.scale.setScalar(ds); dragonModel.userData.ds = ds; }
-  if (s.kind === 'start') { tip(`${vil.name}이(가) 나타났어요! 앗, ${vil.verb}… 연습으로 꺼 볼까요?`); sfx.found(); breath = { t: -1.2, dur: 2.2, lit: false }; setTimeout(sfx.breath, 1200); }
-  else if (done.has(s.st)) { tip(`${STATION_NAME[s.st] || '여기'}는 이미 성공! 그래도 ${vil.name}이(가) 또 왔어요 🔥`); breath = { t: -0.6, dur: 2.2, lit: false }; setTimeout(sfx.breath, 600); }
-  else { tip(`앗! ${vil.name}이(가) 나타났어요… ${vil.verb}!`); breath = { t: 0, dur: 2.2, lit: false }; sfx.breath(); }
+  if (s.kind === 'start') { tip(`${vil.name}이(가) 나타났어요! 앗, ${vil.verb}… 연습으로 꺼 볼까요?`); sfx.found(); setTimeout(sfx.roar, 300); breath = { t: -1.2, dur: 2.2, lit: false }; setTimeout(sfx.breath, 1200); }
+  else if (done.has(s.st)) { tip(`${STATION_NAME[s.st] || '여기'}는 이미 성공! 그래도 ${vil.name}이(가) 또 왔어요 🔥`); breath = { t: -0.6, dur: 2.2, lit: false }; sfx.roar(); setTimeout(sfx.breath, 600); }
+  else { tip(`앗! ${vil.name}이(가) 나타났어요… ${vil.verb}!`); breath = { t: 0, dur: 2.2, lit: false }; sfx.roar(); setTimeout(sfx.breath, 500); }
+}
+// 무대 좌표의 점을 바라보게 (lookAt은 세계 좌표를 받음)
+function lookLocal(o, v) { o.lookAt(stage.localToWorld(v.clone())); }
+// 실외: 동물을 실제 바닥(휴대폰 높이 아래)에 세움 — 자이로로 중력 방향을 알 때만
+const EYE = 1.25; let groundDone = false;
+function placeOnGround() {
+  if (cur == null || !gyro.ok || (est.n || 0) < 12) return;
+  const s = ST[cur]; groundDone = true; if (s.st > 5) return;
+  mTmp.compose(est.p, est.q, est.s); const S = est.s.x, inv = mTmp.clone().invert();
+  const fw = firePos().applyMatrix4(mTmp), h = V(fw.x, 0, fw.z), D = h.length() / S; if (D < .5) return; h.normalize();
+  const side = V(-h.z, 0, h.x), dist = Math.max(3, Math.min(7, D * .4)), sc = (s.animal || .8) / .8;
+  animals.forEach((a, k) => { const x = [0, -1.3, 1.3][k] * sc, d = dist - (a.lead ? .6 : 0);
+    const pl = h.clone().multiplyScalar(d * S).addScaledVector(side, x * S).add(V(0, -EYE * S, 0)).applyMatrix4(inv);
+    a.g.position.copy(pl); });
 }
 function firePos() { const f = ST[cur].fire; return V(f[0], f[1], f[2]); }
 function damage(d) {
@@ -451,56 +547,64 @@ const hose = { on: false, x: 0, y: 0 };
 const rc = new THREE.Raycaster(), ndc = new THREE.Vector2(), inv = new THREE.Matrix4();
 addEventListener('pointerdown', e => { if (e.target.closest('button,select,input,textarea,.overlay')) return; audio(); hose.on = true; hose.x = e.clientX; hose.y = e.clientY; if (stage.visible) hoseSound(true); });
 addEventListener('pointermove', e => { hose.x = e.clientX; hose.y = e.clientY; });
-const hoseOff = () => { hose.on = false; aimRing.visible = false; hoseSound(false); };
+const hoseOff = () => { hose.on = false; aimRing.visible = false; hoseSound(false); hideJets(); sizzleSnd.on(0); };
 addEventListener('pointerup', hoseOff); addEventListener('pointercancel', hoseOff);
 let sprayAcc = 0, burstT = 0;
 const arc = (from, to, T) => { const v = to.clone().sub(from).divideScalar(T); v.y += 4.9 * T; return v; };
 // 친구마다 다른 물 뿌리기
-function heroSpray(from, aim, dir, dt) {
-  const m = HEROES[heroKey].mode; burstT -= dt;
+function heroSpray(from, aim, dir, dt, eye) {
+  const H = HEROES[heroKey], m = H.mode, t = performance.now() / 1000; burstT -= dt;
   const side = V().crossVectors(dir, V(0, 1, 0)).normalize();
   if (m === 'twin' || m === 'ice' || m === 'fountain') {
-    const rate = m === 'fountain' ? 260 : m === 'ice' ? 170 : 200; sprayAcc += dt * rate;
-    while (sprayAcc > 1) { sprayAcc--;
-      const T = .5 + Math.random() * .12, k = m === 'twin' ? (Math.random() < .5 ? -1 : 1) * .25 : 0;
-      const f = from.clone().addScaledVector(side, k), to = aim.clone().add(V(rnd(m === 'fountain' ? .7 : .3), rnd(.3), rnd(.3)));
-      const v = arc(f, to, T); if (m === 'fountain') v.y += 2.5;
-      waterP.spawn(f, v.add(V(rnd(.3), rnd(.3), rnd(.3))), T + .15, m === 'fountain' ? .25 : .13, m === 'ice' ? .45 : .3);
-      if (m === 'ice' && Math.random() < .35) bubbleP.spawn(f.clone(), v.clone().multiplyScalar(.9), T + .4, .05, .18);
+    const T = m === 'fountain' ? .75 : .55, list = m === 'twin' ? [-.22, .22] : [0];
+    list.forEach((k, j) => { const f = from.clone().addScaledVector(side, k), v = arc(f, aim, T); if (m === 'fountain') { v.y += 1.2; }
+      const tv = m === 'fountain' ? arc(f, aim, T) : v; const dk = Math.max(1, f.distanceTo(aim) / 6); jets[j].set(f, tv, T, m === 'fountain' ? .1 : .05, (m === 'fountain' ? .55 : m === 'ice' ? .4 : .28) * dk, eye, t, m === 'ice' ? [.85, .97, 1] : H.tint); });
+    if (list.length < 2) jets[1].m.visible = false;
+    // 물줄기 둘레의 물보라 (카메라에서 먼 쪽에서만)
+    sprayAcc += dt * (m === 'fountain' ? 120 : 70);
+    while (sprayAcc > 1) { sprayAcc--; const u = .25 + Math.random() * .75, T2 = .55, f = from.clone().addScaledVector(side, list[Math.floor(Math.random() * list.length)]);
+      const v = arc(f, aim, T2), tt = u * T2, p = V(f.x + v.x * tt, f.y + v.y * tt - 4.9 * tt * tt, f.z + v.z * tt);
+      waterP.spawn(p, V(v.x * .3 + rnd(.6), v.y - 9.8 * tt + rnd(.6), v.z * .3 + rnd(.6)), .35, m === 'fountain' ? .12 : .07, m === 'ice' ? .3 : .16);
+      if (m === 'ice' && Math.random() < .5) bubbleP.spawn(p.clone(), V(rnd(.4), .2, rnd(.4)), .9, .04, .12); }
+    splashAt(aim, m === 'fountain' ? 5 : 3, m === 'fountain' ? 1.3 : 1);
+  } else {
+    hideJets();
+    if (m === 'burst' || m === 'balloon' || m === 'cannon' || m === 'ball') {
+      const every = { burst: .45, balloon: .35, cannon: .55, ball: .3 }[m];
+      if (burstT <= 0) { burstT = every;
+        if (m === 'burst') { sfx.pop(); for (let i = 0; i < 70; i++) { const T = .55 + Math.random() * .1; waterP.spawn(from.clone().addScaledVector(dir, .6), arc(from, aim.clone().add(V(rnd(.5), rnd(.5), rnd(.5))), T), T + .2, .2, .35); } setTimeout(() => splashAt(aim, 25, 1.2), 550); }
+        else { const T = m === 'cannon' ? .7 : .6, size = { balloon: .45, cannon: .7, ball: .35 }[m];
+          (m === 'cannon' ? sfx.thump : m === 'ball' ? sfx.boing : sfx.pop)();
+          heavyP.spawn(from.clone(), arc(from, aim, T), T, size, size);
+          setTimeout(() => { sfx.splash(); splashAt(aim, m === 'cannon' ? 60 : 35, m === 'cannon' ? 1.6 : 1.2); }, T * 1000); }
+      }
+    } else if (m === 'bubble') {
+      sprayAcc += dt * 70; while (sprayAcc > 1) { sprayAcc--; const T = .9 + Math.random() * .3, to = aim.clone().add(V(rnd(.5), rnd(.5), rnd(.5)));
+        const v = to.sub(from).divideScalar(T); bubbleP.spawn(from.clone().addScaledVector(dir, .5), v.add(V(rnd(.3), rnd(.3), rnd(.3))), T + .3, .2, .45); }
+      if (Math.random() < dt * 7) sfx.blub();
+    } else if (m === 'ring') {
+      if (burstT <= 0) { burstT = .28; sfx.boing(); const T = .6, v = arc(from, aim, T), up = V().crossVectors(side, dir).normalize();
+        for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2, o = side.clone().multiplyScalar(Math.cos(a) * .35).addScaledVector(up, Math.sin(a) * .35);
+          waterP.spawn(from.clone().add(o), v.clone().add(o.clone().multiplyScalar(1.2)), T + .1, .12, .2); }
+        setTimeout(() => splashAt(aim, 14), 600); }
     }
-  } else if (m === 'burst' || m === 'balloon' || m === 'cannon' || m === 'ball') {
-    const every = { burst: .45, balloon: .35, cannon: .55, ball: .3 }[m];
-    if (burstT <= 0) { burstT = every;
-      const n = { burst: 70, balloon: 1, cannon: 1, ball: 1 }[m];
-      if (m === 'burst') for (let i = 0; i < n; i++) { const T = .55 + Math.random() * .1; waterP.spawn(from.clone(), arc(from, aim.clone().add(V(rnd(.5), rnd(.5), rnd(.5))), T), T + .2, .2, .35); }
-      else { const T = m === 'cannon' ? .7 : .6, size = { balloon: .45, cannon: .7, ball: .35 }[m];
-        heavyP.spawn(from.clone(), arc(from, aim, T), T, size, size);
-        setTimeout(() => { for (let i = 0; i < (m === 'cannon' ? 50 : 30); i++) waterP.spawn(aim.clone(), V(rnd(2.5), Math.random() * 2.5, rnd(2.5)), .6, .15, .25); }, T * 1000); }
-    }
-    sprayAcc += dt * 40; while (sprayAcc > 1) { sprayAcc--; const T = .5; waterP.spawn(from.clone(), arc(from, aim, T).add(V(rnd(.4), rnd(.4), rnd(.4))), T, .08, .15); }
-  } else if (m === 'bubble') {
-    sprayAcc += dt * 70; while (sprayAcc > 1) { sprayAcc--; const T = .9 + Math.random() * .3, to = aim.clone().add(V(rnd(.5), rnd(.5), rnd(.5)));
-      const v = to.sub(from).divideScalar(T); bubbleP.spawn(from.clone(), v.add(V(rnd(.3), rnd(.3), rnd(.3))), T + .3, .2, .45); }
-  } else if (m === 'ring') {
-    if (burstT <= 0) { burstT = .28; const T = .6, v = arc(from, aim, T), up = V().crossVectors(side, dir).normalize();
-      for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2, o = side.clone().multiplyScalar(Math.cos(a) * .35).addScaledVector(up, Math.sin(a) * .35);
-        waterP.spawn(from.clone().add(o), v.clone().add(o.clone().multiplyScalar(1.2)), T + .1, .12, .2); } }
   }
 }
 function hoseUpdate(dt) {
-  if (!hose.on || !stage.visible || cur == null) { aimRing.visible = false; return; }
+  if (!hose.on || !stage.visible || cur == null) { aimRing.visible = false; hideJets(); sizzleSnd.on(0); return; }
   ndc.set(hose.x / innerWidth * 2 - 1, -(hose.y / innerHeight) * 2 + 1); rc.setFromCamera(ndc, camera);
   inv.copy(stage.matrixWorld).invert(); const r = rc.ray.clone().applyMatrix4(inv); r.direction.normalize();
   const target = fire ? fire.p : (ST[cur].fire ? firePos() : V(0, 2, 0));
   const tt = Math.max(1, r.direction.dot(target.clone().sub(r.origin)));
   const aim = r.at(tt, V());
   aimRing.visible = true; aimRing.position.copy(aim); aimRing.lookAt(r.origin); aimRing.scale.setScalar(1 + Math.sin(performance.now() / 90) * .1);
-  const from = r.origin.clone().add(V(0, -.6, 0)).addScaledVector(r.direction, 1.2);
-  heroSpray(from, aim, r.direction, dt);
+  const from = r.origin.clone().add(V(0, -.45, 0)).addScaledVector(r.direction, 1.0);
+  heroSpray(from, aim, r.direction, dt, r.origin);
   if (fire && aim.distanceTo(fire.p) < ST[cur].fireW * .75) {
     if (Math.random() < .6) steamP.spawn(fire.p.clone().add(V(rnd(.6), rnd(.3), rnd(.3))), V(rnd(.5), 1.6, rnd(.4)), 1, .6, 2);
+    sizzleSnd.on(.16);
     damage(HEROES[heroKey].dmg * dt);
-  }
+  } else sizzleSnd.on(0);
 }
 
 // ================= 보정 모드 (#calib) =================
@@ -562,12 +666,13 @@ renderer.setAnimationLoop(() => {
   if (lock.has) {
     if (gyro.ok) devQ(qNow); else qNow.identity();
     mTmp.compose(est.p, est.q, est.s); mQ.makeRotationFromQuaternion(qNow.invert()); stage.matrix.multiplyMatrices(mQ, mTmp);
-    stage.matrixWorldNeedsUpdate = true; stage.visible = true;
+    stage.matrixWorldNeedsUpdate = true; stage.visible = true; stage.updateMatrixWorld(true);
+    if (!groundDone) placeOnGround();
   }
-  if (rebreath > 0 && !fire && !breath && cur != null) { rebreath -= dt; if (rebreath <= 0) { breath = { t: 0, dur: 2.2, lit: false }; sfx.breath(); tip(`앗! ${vil.name}이(가) 또 ${vil.verb}!`); } }
+  if (rebreath > 0 && !fire && !breath && cur != null) { rebreath -= dt; if (rebreath <= 0) { breath = { t: 0, dur: 2.2, lit: false }; sfx.roar(); setTimeout(sfx.breath, 400); tip(`앗! ${vil.name}이(가) 또 ${vil.verb}!`); } }
   // 표식을 오래 못 보면 장면을 내려놓고 다음 장소를 찾게 함 (불이 있으면 더 오래 유지)
   if (lock.has && visibleTarget < 0 && performance.now() - lastSeen > (fire ? 25000 : 12000)) {
-    lock.has = false; est.has = false; stage.visible = false; cur = null; fire = null; breath = null; rebreath = 0; hoseOff();
+    lock.has = false; est.has = false; stage.visible = false; cur = null; fire = null; hideJets(); breath = null; rebreath = 0; hoseOff();
     tip('다음 장소의 건물이나 배너를 비춰 보세요');
   }
   $('scan').classList.toggle('hidden', !controller || lock.has);
@@ -582,8 +687,8 @@ renderer.setAnimationLoop(() => {
       const speed = breath ? .15 : .35; flightA += speed * dt;
       const path = a => center.clone().add(V(R * Math.cos(a), .15 * R * Math.sin(2 * a), R * .6 * Math.sin(a) + .3 * R));
       const p = path(flightA), n = path(flightA + .05);
-      dragon.position.copy(p); dragon.lookAt(n);
-      if (breath && s.fire) { dragon.lookAt(firePos()); dragon.rotateX(.2); }
+      dragon.position.copy(p); lookLocal(dragon, n);
+      if (breath && s.fire) { lookLocal(dragon, firePos()); }
       if (s.villain === 'boss') dragon.rotateZ(Math.sin(t * 2) * .15);
       dragonModel.position.y = -0.25 * ds + Math.sin(t * 7) * .02 * ds;
     } else {
@@ -593,12 +698,13 @@ renderer.setAnimationLoop(() => {
       const p = base.clone().add(V(R * Math.sin(flightA), 0, .3 * R * Math.cos(flightA)));
       const n = base.clone().add(V(R * Math.sin(flightA + .05), 0, .3 * R * Math.cos(flightA + .05)));
       dragon.position.copy(p);
-      if (breath) { const f = firePos(); f.y = p.y; dragon.lookAt(f.x === p.x && f.z === p.z ? stage.worldToLocal(camera.getWorldPosition(V())).setY(p.y) : f); }
-      else dragon.lookAt(n);
+      if (breath) { const f = firePos(); f.y = p.y; lookLocal(dragon, f.x === p.x && f.z === p.z ? stage.worldToLocal(camera.getWorldPosition(V())).setY(p.y) : f); }
+      else lookLocal(dragon, n);
       const step = Math.abs(Math.sin(t * (s.villain === 'golem' ? 3 : 4)));
       if (!mixer) { dragonModel.position.y = step * .06 * ds; dragonModel.rotation.z = Math.sin(t * (s.villain === 'golem' ? 3 : 4)) * (s.villain === 'mummy' ? .12 : .06); }
       if (s.villain === 'golem' && step < .05 && Math.random() < .3) for (let i = 0; i < 6; i++) smokeP.spawn(p.clone().add(V(rnd(.3 * ds), .05, rnd(.3 * ds))), V(rnd(.3), .3, rnd(.3)), 1, .2 * ds, .5 * ds);
     }
+    dragon.updateMatrixWorld(true);
     if (breath) {
       if (!breath.anim && mixAct.Attack && breath.t > .1) { breath.anim = true; const at = mixAct.Attack; at.reset(); at.setLoop(THREE.LoopOnce); at.clampWhenFinished = false; at.fadeIn(.15).play(); setTimeout(() => at.fadeOut(.3), 1100); }
       breath.t += dt;
@@ -608,7 +714,7 @@ renderer.setAnimationLoop(() => {
         const tgt = fp.clone().add(V(rnd(s.fireW * .3), rnd(.4), rnd(.3))); const dir = tgt.sub(mouth); const dist = dir.length(); dir.normalize(); const sp = Math.max(2.5, Math.min(14, dist * 3)) * (1 + Math.random() * .2);
         fireP.spawn(mouth.clone(), dir.multiplyScalar(sp).add(V(rnd(1), rnd(1), rnd(1)).multiplyScalar(sp / 12)), dist / sp * (.85 + Math.random() * .3), .04 * ds, .23 * ds);
       }
-      if (!breath.lit && breath.t > 1.4) { breath.lit = true; fire = { p: fp, hp: 100, grow: 0, acc: 0, sacc: 0 }; tip('불이 났어요! 화면을 꾹 눌러 물을 뿌려요 💧'); }
+      if (!breath.lit && breath.t > 1.4) { breath.lit = true; fire = { p: fp, hp: 100, grow: 0, acc: 0, sacc: 0 }; sfx.ignite(); tip('불이 났어요! 화면을 꾹 눌러 물을 뿌려요 💧'); }
       if (breath.t > breath.dur + .4) breath = null;
     }
   }
@@ -620,6 +726,7 @@ renderer.setAnimationLoop(() => {
       fireP.spawn(fire.p.clone().add(V(rnd(W * .45 * kk + .1), rnd(.3), rnd(.25))), V(rnd(.35), 1.4 + Math.random() * 1.6, rnd(.3)), .6 + Math.random() * .5, (W * .75) * kk + .25, .2); }
     fire.sacc += dt * 9 * kk; while (fire.sacc > 1) { fire.sacc--; smokeP.spawn(fire.p.clone().add(V(rnd(W * .3), W * .4 * kk, 0)), V(rnd(.3) + .2, 1 + Math.random() * .6, rnd(.3)), 2.8, W * .4, W * 1.1); }
   } else fireLight.intensity = 0;
+  fireSnd.on(fire && stage.visible ? .12 + .3 * fire.grow * fire.hp / 100 : 0);
   for (const a of animals) {
     if (!a.g.visible) continue;
     a.hop += dt * (fire ? 9 : 4); let y = Math.abs(Math.sin(a.hop)) * (fire ? .12 : .03);
