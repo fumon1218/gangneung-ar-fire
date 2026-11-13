@@ -44,6 +44,26 @@
   @keyframes tap{50%{transform:translate(6px,8px) scale(.9)}}
   .glow{animation:glow 1s infinite alternate}
   @keyframes glow{from{filter:drop-shadow(0 0 2px #fff700)}to{filter:drop-shadow(0 0 10px #ffe600)}}
+
+  /* ---- AR 소화기 훈련 ---- */
+  #tr{position:fixed;inset:0;z-index:7;pointer-events:none}
+  #tr .tsteps{position:fixed;left:8px;top:calc(max(8px,env(safe-area-inset-top)) + 56px);display:flex;gap:4px;background:rgba(255,255,255,.88);border-radius:14px;padding:5px 7px}
+  #tr .s{font-size:12px;font-weight:900;padding:4px 6px;border-radius:9px;background:#eee;color:#888;white-space:nowrap}
+  #tr .s.on{background:#ff6a2b;color:#fff;animation:tp .8s infinite alternate} #tr .s.ok{background:#2fbf71;color:#fff}
+  @keyframes tp{to{transform:scale(1.08)}}
+  #tr .cross{position:fixed;left:50%;top:50%;width:46px;height:46px;margin:-23px;border:3px solid rgba(255,255,255,.9);border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,.25)}
+  #tr .cross::after{content:'';position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px;background:#fff;border-radius:50%}
+  #tr .cross.hot{border-color:#ff5a2b;box-shadow:0 0 12px #ff5a2b}
+  #tr button{pointer-events:auto;touch-action:none}
+  #trSpray{position:fixed;right:max(18px,env(safe-area-inset-right));bottom:max(24px,env(safe-area-inset-bottom));width:116px;height:116px;border-radius:50%;border:5px solid #fff;background:radial-gradient(circle at 35% 30%,#ff7b6b,#d7191f);color:#fff;font-family:'Jua',sans-serif;font-size:18px;line-height:1.1;box-shadow:0 5px 0 #9c0f14}
+  #trSpray.on{transform:translateY(4px) scale(.96);box-shadow:0 1px 0 #9c0f14}
+  #trPin{position:fixed;right:max(24px,env(safe-area-inset-right));bottom:calc(max(24px,env(safe-area-inset-bottom)) + 130px);width:74px;height:74px;border-radius:50%;border:4px solid #fff;background:#ffcf33;font-family:'Jua',sans-serif;font-size:13px;line-height:1.1;box-shadow:0 4px 0 #c98a00;animation:tp .7s infinite alternate}
+  #trPin.used{opacity:.35;animation:none}
+  #trYell,#trEvac{position:fixed;left:50%;bottom:max(36px,env(safe-area-inset-bottom));transform:translateX(-50%);border:4px solid #fff;border-radius:22px;background:#ff3b2f;color:#fff;font-family:'Jua',sans-serif;font-size:24px;padding:12px 22px;box-shadow:0 5px 0 #a81d14}
+  #trEvac{background:#18a84a;box-shadow:0 5px 0 #0e6e30}
+  #trGauge{position:fixed;right:max(18px,env(safe-area-inset-right));bottom:calc(max(24px,env(safe-area-inset-bottom)) + 214px);width:116px;height:12px;border-radius:8px;background:rgba(255,255,255,.7);overflow:hidden}
+  #trGauge i{display:block;height:100%;background:linear-gradient(90deg,#ff5a3c,#ffd35a);width:100%}
+  #trSize{position:fixed;inset:0;z-index:30;background:rgba(20,30,50,.6);display:flex;align-items:center;justify-content:center;pointer-events:auto}
   /* ---- 미니맵 (보물지도) ---- */
   #mini{position:fixed;left:10px;top:calc(max(10px,env(safe-area-inset-top)) + 62px);width:108px;height:108px;border-radius:20px;overflow:hidden;z-index:6;
     border:4px solid #f3d38a;box-shadow:0 4px 14px rgba(0,0,0,.35),inset 0 0 0 2px #b8862e;background:#f6e3b4;pointer-events:auto;transition:transform .2s}
@@ -144,6 +164,17 @@
 </div>
 
 
+<div id="tr" class="hidden">
+  <div class="tsteps"><span class="s">📣 외치기</span><span class="s">① 핀</span><span class="s">② 겨누기</span><span class="s">③④ 쓸기</span></div>
+  <div class="cross" id="trCross"></div>
+  <div id="trGauge"><i id="trG"></i></div>
+  <button id="trPin">① 안전핀<br>뽑기</button>
+  <button id="trSpray">③ 꾹<br>누르기</button>
+  <button id="trYell" class="hidden">📣 불이야!</button>
+  <button id="trEvac" class="hidden">🏃 대피!</button>
+</div>
+<div id="trSize" class="hidden"><div class="card"><h1>📷 무엇을 비추나요?</h1><p>표식 크기에 맞춰 사물 크기를 맞춰요</p>
+  <button class="big" id="szBanner">🪧 X배너 (크게)</button><br><button class="big blue" id="szA4">📄 A4 종이 표식</button><br><button class="big gray" id="szBuild">🏫 건물·실내 장소</button></div></div>
 <div id="lobby" class="hidden">
   <div class="lt">🚒 동물 소방대 본부</div>
   <div class="panel">
@@ -151,6 +182,7 @@
     <div id="badges"></div>
     <button class="big blue" id="extBtn" style="width:100%">🧯 소화기 4단계 연습</button>
     <a class="big" href="train.html" style="display:block;width:100%;box-sizing:border-box;text-decoration:none;background:#6c4bd8;box-shadow:0 4px 0 #46309a;margin-top:8px">🏫 3D 불끄기 훈련장</a>
+    <a class="big" href="index.html?train" style="display:block;width:100%;box-sizing:border-box;text-decoration:none;background:#14a37f;box-shadow:0 4px 0 #0b6e55;margin-top:8px">📷 AR 소화기 훈련</a>
     <p style="margin:12px 0 0"><b>어디로 출동할까요?</b></p>
     <div class="row"><button class="big" id="goOut">🏢 실외 출동</button><button class="big" id="goIn">🏠 실내 출동</button></div>
     <p class="small" id="lnote" style="margin:8px 0 0"></p>
@@ -329,12 +361,12 @@ class Particles {
   spawn(p, v, life, s0, s1) { const i = this.i; this.i = (i + 1) % this.n; this.pos.set([p.x, p.y, p.z], i * 3); this.vel.set([v.x, v.y, v.z], i * 3); this.life[i] = this.max[i] = life; this.s0[i] = s0; this.s1[i] = s1; }
   clear() { this.life.fill(0); }
   update(dt) {
-    const grav = this.kind === 'water' ? -9.8 : this.kind === 'fire' ? 1.5 : this.kind === 'bubble' ? .25 : this.kind === 'heavy' ? -7 : .6;
+    const grav = this.kind === 'powder' ? -.4 : this.kind === 'water' ? -9.8 : this.kind === 'fire' ? 1.5 : this.kind === 'bubble' ? .25 : this.kind === 'heavy' ? -7 : .6;
     for (let i = 0; i < this.n; i++) {
       if (this.life[i] <= 0) { this.alpha[i] = 0; this.size[i] = 0; continue; }
       this.life[i] -= dt; const t = 1 - Math.max(0, this.life[i]) / this.max[i], j = i * 3;
       this.vel[j + 1] += grav * dt;
-      if (this.kind !== 'water' && this.kind !== 'heavy') { this.vel[j] *= this.kind === 'bubble' ? .97 : .985; this.vel[j + 2] *= this.kind === 'bubble' ? .97 : .985; }
+      if (this.kind === 'powder') { const k = Math.pow(.2, dt); this.vel[j] *= k; this.vel[j + 1] *= k; this.vel[j + 2] *= k; } else if (this.kind !== 'water' && this.kind !== 'heavy') { this.vel[j] *= this.kind === 'bubble' ? .97 : .985; this.vel[j + 2] *= this.kind === 'bubble' ? .97 : .985; }
       this.pos[j] += this.vel[j] * dt; this.pos[j + 1] += this.vel[j + 1] * dt; this.pos[j + 2] += this.vel[j + 2] * dt;
       this.size[i] = this.s0[i] + (this.s1[i] - this.s0[i]) * t;
       let r, g, b, a;
@@ -345,6 +377,7 @@ class Particles {
         a = Math.pow(1 - t, 1.3) * .85;
       } else if (this.kind === 'smoke') { r = g = b = .4 + .3 * t; a = .4 * (1 - t) * Math.min(1, t * 6); }
       else if (this.kind === 'steam') { r = g = b = .97; a = .6 * (1 - t); }
+      else if (this.kind === 'powder') { r = g = b = .97; a = .75 * (1 - t) * Math.min(1, t * 8); }
       else if (this.kind === 'bubble') { r = .85; g = .95; b = 1; a = .55 * (1 - t) * (.6 + .4 * Math.sin(i + t * 20)); }
       else { const c = this.kind === 'heavy' ? heavyTint : waterTint; r = c[0]; g = c[1]; b = c[2]; a = .95 * (1 - t * t); }
       this.col.set([r, g, b], j); this.alpha[i] = a;
@@ -359,7 +392,8 @@ let waterTint = [.5, .8, 1], heavyTint = [.5, .8, 1];
 const waterP = new Particles(1800, THREE.NormalBlending, 'water');
 const bubbleP = new Particles(500, THREE.NormalBlending, 'bubble');
 const heavyP = new Particles(600, THREE.NormalBlending, 'heavy');
-const allP = [smokeP, fireP, steamP, waterP, bubbleP, heavyP];
+const powderP = new Particles(1400, THREE.NormalBlending, 'powder');
+const allP = [smokeP, fireP, steamP, waterP, bubbleP, heavyP, powderP];
 // ---- 이어진 물줄기 (리본) ----
 const JVS = `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`;
 const JFS = `varying vec2 vUv; uniform float uT; uniform vec3 uC; uniform float uA;
@@ -634,6 +668,135 @@ const exUp = () => { const d = EX.drag; EX.drag = null;
 $('exStage').addEventListener('pointerup', exUp); $('exStage').addEventListener('pointercancel', exUp);
 setInterval(() => { if (EX.drag && EX.drag.k === 'hold' && performance.now() - EX.drag.t0 > 900) { EX.drag = null; EX.squeezing = false; exSet(3); } }, 100);
 
+
+// ================= AR 소화기 훈련 (index.html?train) =================
+const TRAIN = new URLSearchParams(location.search).has('train');
+const TR = { f: 1, props: null, placed: false, spots: [], fire: null, pin: false, yelled: false, spraying: false, powder: 100, cleared: 0, stars: 0, lastAim: 0, swDir: 0, swAcc: 0, sweep: 0, evac: false, ext: null, nextT: 0, lastSpot: -1, hint: {} };
+const trProtos = {};
+function trLoad() { return Promise.all(['desk', 'chair', 'recyclebins', 'bookshelf', 'planter'].map(n => new Promise(r => loader.load('train/' + n + '.glb', g => { g.scene.traverse(o => { if (o.isMesh) o.castShadow = true; }); trProtos[n] = g.scene; r(); }, undefined, () => r())))); }
+function trFit(o, h) { const b = new THREE.Box3().setFromObject(o), k = h / (b.max.y - b.min.y); o.scale.multiplyScalar(k); const b2 = new THREE.Box3().setFromObject(o); o.position.y -= b2.min.y; return o; }
+function trBuildProps() {
+  const g = new THREE.Group(), put = (n, h, x, z, ry) => { if (!trProtos[n]) return null; const o = trProtos[n].clone(); trFit(o, h); o.position.x = x; o.position.z = z; o.rotation.y = ry; g.add(o); return o; };
+  put('desk', .76, -.8, 0, 0); put('chair', .84, -.8, .55, Math.PI);
+  put('recyclebins', .55, .9, .1, -.3); put('bookshelf', 1.5, -2.0, -.4, .5); put('planter', .7, 1.9, -.3, 0);
+  const papers = new THREE.Group(); for (let i = 0; i < 5; i++) { const pp = new THREE.Mesh(new THREE.BoxGeometry(.3, .012, .22), new THREE.MeshStandardMaterial({ color: i % 2 ? 0xffffff : 0xf1ece0 })); pp.position.set(rnd(.03), i * .013, rnd(.03)); pp.rotation.y = rnd(.3); papers.add(pp); }
+  papers.position.set(-.8, .77, -.05); g.add(papers);
+  TR.spots = [{ name: '책상 위 종이', p: V(-.8, .8, -.05) }, { name: '분리수거함', p: V(.9, .5, .1) }, { name: '책꽂이', p: V(-1.95, .75, -.3) }];
+  return g;
+}
+// 손에 든 소화기는 별도 장면·카메라로 화면 위에 덧그림 (AR 카메라 단위와 무관)
+const extScene = new THREE.Scene(), extCam = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, .01, 10);
+extScene.add(new THREE.HemisphereLight(0xffffff, 0x886644, 2.2)); { const dl = new THREE.DirectionalLight(0xffffff, 1.6); dl.position.set(1, 2, 2); extScene.add(dl); }
+addEventListener('resize', () => { extCam.aspect = innerWidth / innerHeight; extCam.updateProjectionMatrix(); });
+function trExtinguisher() { const e = makeExt3(); e.scale.setScalar(.36); e.position.set(.15, -.3, -.62); e.rotation.set(0, -Math.PI / 2 + .35, 0); extScene.add(e); return e; }
+function makeExt3() {
+  const g = new THREE.Group(), M = (c, r = .35, m = 0) => new THREE.MeshStandardMaterial({ color: c, roughness: r, metalness: m });
+  const red = M(0xe0161c, .28, .15), yel = M(0xffc81e), blk = M(0x1c1c1e, .45), sil = M(0xc9ccd2, .25, .85), wht = M(0xf7f7f7, .5);
+  const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); g.add(m); return m; };
+  add(new THREE.CylinderGeometry(.1, .1, .4, 32), red, 0, .26, 0); add(new THREE.SphereGeometry(.1, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), red, 0, .46, 0);
+  add(new THREE.CylinderGeometry(.105, .105, .06, 32), blk, 0, .03, 0); for (const y of [.12, .4]) add(new THREE.CylinderGeometry(.103, .103, .025, 32), yel, 0, y, 0);
+  add(new THREE.CylinderGeometry(.1015, .1015, .16, 32, 1, true, -Math.PI / 3, Math.PI * 2 / 3), wht, 0, .26, 0).rotation.y = Math.PI / 2;
+  add(new THREE.CylinderGeometry(.03, .035, .08, 16), sil, 0, .58, 0);
+  const lever = new THREE.Group(); lever.position.set(-.02, .64, 0); g.add(lever); const lv = new THREE.Mesh(new THREE.BoxGeometry(.2, .02, .04), blk); lv.position.set(-.09, .01, 0); lv.rotation.z = -.18; lever.add(lv);
+  add(new THREE.BoxGeometry(.18, .02, .04), blk, -.1, .58, 0).rotation.z = .25;
+  const pin = new THREE.Group(); pin.position.set(-.03, .615, 0); g.add(pin); const rod = new THREE.Mesh(new THREE.CylinderGeometry(.005, .005, .09, 8), sil); rod.rotation.z = Math.PI / 2; rod.position.x = -.03; pin.add(rod);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(.03, .007, 10, 24), yel); ring.position.x = -.1; pin.add(ring);
+  const hc = new THREE.CatmullRomCurve3([V(.03, .6, 0), V(.12, .58, 0), V(.17, .35, .02), V(.2, .2, .1), V(.22, .22, .2)]); g.add(new THREE.Mesh(new THREE.TubeGeometry(hc, 32, .014, 8), blk));
+  const noz = new THREE.Group(); noz.position.set(.22, .22, .2); g.add(noz); const cone = new THREE.Mesh(new THREE.CylinderGeometry(.03, .012, .12, 20, 1, true), blk); cone.rotation.x = Math.PI / 2; cone.position.z = .06; noz.add(cone);
+  g.userData = { lever, pin, noz }; return g;
+}
+function trSteps() {
+  const f = TR.fire, st = [TR.yelled || !f ? 'ok' : 'on', TR.pin ? 'ok' : 'on', TR.near ? 'ok' : TR.pin ? 'on' : '', TR.spraying ? 'on' : ''];
+  document.querySelectorAll('#tr .s').forEach((el, i) => el.className = 's ' + st[i]);
+}
+function trSetup(i) {
+  if (!TR.props) { TR.props = trBuildProps(); stage.add(TR.props); }
+  TR.placed = false; TR.props.visible = false;
+  animals.forEach(a => a.g.visible = false); if (dragon) dragon.visible = false;
+  tip('표식을 잘 비추고 잠깐 기다려요… 교실 물건이 바닥에 놓여요');
+}
+// 실제 바닥 위, 표식 쪽으로 1.6~3m 앞에 사물 배치 (f = 표식 실제 크기 보정)
+function trPlace() {
+  if (TR.placed || cur == null || (est.n || 0) < 10) return;
+  const f = TR.f, s = ST[cur]; mTmp.compose(est.p, est.q, est.s); const S = est.s.x, inv = mTmp.clone().invert(), P = TR.props;
+  let ctr, up, zf;
+  if (gyro.ok) {
+    const mk = V(0, 0, 0).applyMatrix4(mTmp), h = V(mk.x, 0, mk.z), D = h.length() / S / f; h.normalize();
+    const d = Math.max(1.6, Math.min(3, D * .8));
+    const cw = h.clone().multiplyScalar(d * S * f).add(V(0, -1.2 * S * f, 0));
+    ctr = cw.clone().applyMatrix4(inv); const camL = V(0, 0, 0).applyMatrix4(inv);
+    up = V(0, 1, 0).transformDirection(inv); zf = camL.sub(ctr); zf.addScaledVector(up, -zf.dot(up)).normalize();
+  } else { ctr = V(0, s.ground, 1.2 * f); up = V(0, 1, 0); zf = V(0, 0, 1); }
+  const xf = V().crossVectors(up, zf).normalize();
+  P.matrixAutoUpdate = false; P.matrix.makeBasis(xf.multiplyScalar(f), up.clone().multiplyScalar(f), zf.clone().multiplyScalar(f)).setPosition(ctr); P.matrixWorldNeedsUpdate = true;
+  P.visible = true; TR.placed = true; sfx.found();
+  tip('교실 물건이 나타났어요! 둘러보세요… 곧 불이 날지도 몰라요'); if (!TR.fire && TR.cleared < 3) TR.nextT = 2.5;
+}
+function trStartFire() {
+  const opts = TR.spots.map((x, i) => i).filter(i => i !== TR.lastSpot), k = opts[Math.floor(Math.random() * opts.length)]; TR.lastSpot = k;
+  TR.fire = { ...TR.spots[k], size: .3, hp: 100, acc: 0, sacc: 0 }; TR.yelled = false; TR.evac = false; TR.hint = {};
+  sfx.ignite(); tip(`🔥 ${TR.spots[k].name}에 불이 났어요! 먼저 "불이야!" 하고 외쳐요`); $('trYell').classList.remove('hidden'); trSteps();
+}
+function trDone(msg, star) {
+  TR.fire = null; fireLight.intensity = 0; fireSnd.on(0); sizzleSnd.on(0); TR.cleared++; TR.stars += star; $('trYell').classList.add('hidden'); $('trEvac').classList.add('hidden'); tip(msg); trSteps();
+  if (TR.cleared >= 3) setTimeout(() => { sfx.win(); tip(`🎉 훈련 완료! ${'⭐'.repeat(Math.min(6, TR.stars))} 안전체험관에서 진짜 소화기로 연습해요`); }, 1500); else TR.nextT = 4;
+}
+function trUpdate(dt, t) {
+  if (!TR.ext) TR.ext = trExtinguisher();
+  const U = TR.ext.userData; U.lever.rotation.z = TR.spraying ? -.28 : 0; TR.ext.visible = stage.visible;
+  if (TR.pinFly > 0) { TR.pinFly -= dt; U.pin.position.x -= dt * .4; U.pin.position.y += dt * .3; if (TR.pinFly <= 0) U.pin.visible = false; }
+  if (!TR.placed || !stage.visible) { sizzleSnd.on(0); return; }
+  if (TR.nextT > 0) { TR.nextT -= dt; if (TR.nextT <= 0) trStartFire(); }
+  // 카메라 → 무대 좌표
+  stage.updateMatrixWorld(true); const inv = stage.matrixWorld.clone().invert();
+  const camL = V(0, 0, 0).applyMatrix4(inv), aim = V(0, 0, -1).transformDirection(inv), toL = p => TR.props.localToWorld(p.clone()).applyMatrix4(inv);
+  const f = TR.fire, unit = TR.f; // 무대 1단위 = 1/f m
+  TR.near = false; let hot = false;
+  if (f) {
+    const fp = toL(f.p), dist = fp.distanceTo(camL) / unit, to = fp.clone().sub(camL).normalize(), dot = to.dot(aim);
+    TR.near = dist < 3.5; hot = dot > .93 && TR.near;
+    if (!TR.evac) f.size = Math.min(2, f.size + dt * (TR.spraying && hot ? 0 : .02));
+    if (f.size > 1.6 && !TR.evac) { TR.evac = true; $('trEvac').classList.remove('hidden'); tip('🚨 불이 너무 커졌어요! 끄지 말고 대피 버튼을 눌러요'); }
+    const k = f.size * unit; f.acc += dt * 110 * f.size; while (f.acc > 1) { f.acc--; fireP.spawn(fp.clone().add(V(rnd(.15 * k), 0, rnd(.15 * k))), V(rnd(.2), .8 + Math.random(), rnd(.2)).multiplyScalar(unit), .5 + Math.random() * .4, .18 * k + .05 * unit, .06 * unit); }
+    f.sacc += dt * 7 * f.size; while (f.sacc > 1) { f.sacc--; smokeP.spawn(fp.clone().add(V(0, .4 * k, 0)), V(rnd(.15), .6, rnd(.15)).multiplyScalar(unit), 2.2, .25 * k, k); }
+    fireLight.position.copy(fp); fireLight.intensity = (2.5 + Math.sin(t * 23) * .5) * f.size; fireSnd.on(.1 + .2 * Math.min(1, f.size));
+    if (TR.spraying && hot && !TR.evac) { const eff = (1 - dist / 4.5) * (1 + TR.sweep * 1.2); f.hp -= dt * 30 * eff; f.size = Math.max(.15, f.size - dt * .12 * eff); sizzleSnd.on(.14);
+      if (Math.random() < .4) steamP.spawn(fp.clone(), V(rnd(.3), 1, rnd(.3)).multiplyScalar(unit), 1, .2 * unit, .8 * unit);
+      if (TR.sweep < .2 && f.hp < 90 && !TR.hint.sw) { TR.hint.sw = true; tip('💡 누른 채로 휴대폰을 좌우로 천천히 흔들어 빗자루처럼 쓸어요!'); }
+      if (f.hp <= 0) { for (let i = 0; i < 30; i++) steamP.spawn(fp.clone(), V(rnd(.5), 1 + Math.random(), rnd(.5)).multiplyScalar(unit), 1.4, .3 * unit, 1.2 * unit); sfx.out(); trDone(`✅ ${f.name} 불을 껐어요! ${TR.yelled ? '⭐⭐' : '⭐'}`, TR.yelled ? 2 : 1); }
+    } else sizzleSnd.on(0);
+    if (TR.spraying && !TR.near && !TR.hint.far) { TR.hint.far = true; tip('조금 더 가까이 가요! 분말이 닿지 않아요'); }
+  } else { fireSnd.on(0); sizzleSnd.on(0); }
+  $('trCross').classList.toggle('hot', hot);
+  // 분사
+  if (TR.spraying) {
+    TR.powder = Math.max(0, TR.powder - dt * 7); if (TR.powder <= 0) { trSprayEnd(); tip('소화기가 비었어요! 🔄 새 소화기를 들려면 안전핀 버튼을 다시 눌러요'); TR.pin = false; $('trPin').classList.remove('used'); U.pin.visible = true; U.pin.position.set(-.03, .615, 0); TR.powder = 100; }
+    const downL = V(0, -1, 0).transformDirection(inv), nz = camL.clone().addScaledVector(aim, .45 * unit).addScaledVector(downL, .2 * unit);
+    for (let i = 0; i < 12; i++) { const d = aim.clone().add(V(rnd(.1), rnd(.07), rnd(.1))).normalize(); powderP.spawn(nz.clone().addScaledVector(aim, .05 * unit), d.multiplyScalar((6 + Math.random() * 3) * unit), .55 + Math.random() * .3, .05 * unit, .5 * unit); }
+    const a = Math.atan2(aim.x, aim.z); let da = a - TR.lastAim; da = Math.atan2(Math.sin(da), Math.cos(da)); TR.lastAim = a;
+    if (Math.abs(da) > .002) { const dir = Math.sign(da); if (dir !== TR.swDir) { if (TR.swAcc > .1) TR.sweep = Math.min(1, TR.sweep + .35); TR.swDir = dir; TR.swAcc = 0; } TR.swAcc += Math.abs(da); }
+  }
+  TR.sweep = Math.max(0, TR.sweep - dt * .25);
+  $('trG').style.width = TR.powder + '%';
+  if ((t % .4) < dt) trSteps();
+}
+function trSprayEnd() { TR.spraying = false; $('trSpray').classList.remove('on'); hoseSnd.on(0); sizzleSnd.on(0); }
+if (TRAIN) {
+  document.querySelector('#start h1').textContent = '🧯 AR 소화기 훈련';
+  document.querySelector('#start h1').nextElementSibling.innerHTML = '표식을 비추면 <b>실제 바닥</b>에 교실 물건이 놓여요.<br>불이 나면 <b>소화기 4단계</b>로 꺼요!';
+  $('go').textContent = '📷 카메라 켜고 훈련 시작';
+  $('trSpray').addEventListener('pointerdown', e => { e.preventDefault(); audio();
+    if (!TR.pin) { tip('🔒 먼저 노란 안전핀을 뽑아요!'); return; }
+    TR.spraying = true; $('trSpray').classList.add('on'); hoseSnd.on(.12); hoseSnd.f && hoseSnd.f.frequency.setTargetAtTime(3200, ac.currentTime, .05); });
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) $('trSpray').addEventListener(ev, trSprayEnd);
+  $('trPin').onclick = () => { if (TR.pin) return; audio(); TR.pin = true; TR.pinFly = 1; sfx.pop(); $('trPin').classList.add('used'); tip('✅ 안전핀을 뽑았어요! 가운데 동그라미를 불에 맞추고 가까이 가요'); trSteps(); };
+  $('trYell').onclick = () => { if (!TR.fire || TR.yelled) return; audio(); TR.yelled = true; $('trYell').classList.add('hidden'); for (let i = 0; i < 3; i++) { tone('sawtooth', 700, 1100, .3, .1, i * .32, 2500); } tip('📣 잘 외쳤어요! 이제 안전핀을 뽑고 꺼요'); trSteps(); };
+  $('trEvac').onclick = () => { audio(); trDone('👏 잘했어요! 큰 불은 끄지 않고 대피하는 게 정답이에요', 1); };
+  const pick = f => { TR.f = f; $('trSize').classList.add('hidden'); startAR().then(() => { $('tr').classList.remove('hidden'); $('mini').classList.add('hidden'); tip('X배너·A4 표식·실내 장소 중 하나를 비춰요'); trSteps(); }); };
+  $('szBanner').onclick = () => pick(1); $('szA4').onclick = () => pick(BANNER_W / .186); $('szBuild').onclick = () => pick(1);
+  trLoad();
+}
+
 // ================= 게임 상태 =================
 let cur = null;            // 현재 스테이션 번호
 let fire = null;           // { p, hp, grow, acc, sacc }
@@ -643,6 +806,7 @@ const aimRing = new THREE.Mesh(new THREE.RingGeometry(.35, .5, 32), new THREE.Me
 aimRing.renderOrder = 6; aimRing.visible = false; stage.add(aimRing);
 
 function setupStation(i) {
+  if (TRAIN) { cur = i; trSetup(i); return; }
   cur = i; rebreath = 0; groundDone = false; mapFire = false; setTimeout(updMini, 0);
   { const c = ST[i].st >= 6 ? 'in' : 'out'; if (c !== course) { course = c; updChips(); } }
   animals.forEach(a => a.g.scale.setScalar((ST[i].animal || .8) / .8 * (a.lead ? 1.3 : 1))); const s = ST[i]; fire = null; breath = null; allP.forEach(p => p.clear());
@@ -795,12 +959,12 @@ async function startAR() {
   $('start').classList.add('hidden'); $('scan').classList.remove('hidden'); $('mini').classList.remove('hidden'); updMini();
   if (location.hash === '#calib') openCalib();
 }
-$('go').onclick = openLobby;
+$('go').onclick = () => TRAIN ? $('trSize').classList.remove('hidden') : openLobby();
 
 // ================= 호스 (꾹 눌러 물 뿌리기) =================
 const hose = { on: false, x: 0, y: 0 };
 const rc = new THREE.Raycaster(), ndc = new THREE.Vector2(), inv = new THREE.Matrix4();
-addEventListener('pointerdown', e => { if (e.target.closest('button,select,input,textarea,.overlay,#mini,#mapBig,#lobby,#ext')) return; audio(); hose.on = true; hose.x = e.clientX; hose.y = e.clientY; if (stage.visible) hoseSound(true); });
+addEventListener('pointerdown', e => { if (TRAIN || e.target.closest('button,select,input,textarea,.overlay,#mini,#mapBig,#lobby,#ext')) return; audio(); hose.on = true; hose.x = e.clientX; hose.y = e.clientY; if (stage.visible) hoseSound(true); });
 addEventListener('pointermove', e => { hose.x = e.clientX; hose.y = e.clientY; });
 const hoseOff = () => { hose.on = false; aimRing.visible = false; hoseSound(false); hideJets(); sizzleSnd.on(0); };
 addEventListener('pointerup', hoseOff); addEventListener('pointercancel', hoseOff);
@@ -922,7 +1086,7 @@ renderer.setAnimationLoop(() => {
     if (gyro.ok) devQ(qNow); else qNow.identity();
     mTmp.compose(est.p, est.q, est.s); mQ.makeRotationFromQuaternion(qNow.invert()); stage.matrix.multiplyMatrices(mQ, mTmp);
     stage.matrixWorldNeedsUpdate = true; stage.visible = true; stage.updateMatrixWorld(true);
-    if (!groundDone) placeOnGround();
+    if (TRAIN) trPlace(); else if (!groundDone) placeOnGround();
   }
   if (rebreath > 0 && !fire && !breath && cur != null && (!dispatched || ST[cur].st === alarmAt[course])) { rebreath -= dt; if (rebreath <= 0) { breath = { t: 0, dur: 2.2, lit: false }; sfx.roar(); setTimeout(sfx.breath, 400); tip(`앗! ${vil.name}이(가) 또 ${vil.verb}!`); } }
   // 표식을 오래 못 보면 장면을 내려놓고 다음 장소를 찾게 함 (불이 있으면 더 오래 유지)
@@ -934,7 +1098,7 @@ renderer.setAnimationLoop(() => {
   const k = V().setFromMatrixScale(stage.matrixWorld).x;
   for (const p of allP) { p.mat.uniforms.uScale.value = innerHeight * renderer.getPixelRatio() * .9 * k; p.mat.uniforms.uMax.value = 110 * renderer.getPixelRatio(); }
 
-  if (dragon && cur != null) {
+  if (!TRAIN && dragon && cur != null) {
     const s = ST[cur], ds = dragonModel.userData.ds;
     if (vil.fly) {
       const center = s.center ? V(...s.center) : s.kind === 'start' ? V(0, cur === 0 ? 1.5 : 3.5, 1.5) : firePos().add(V(0, 3, 0));
@@ -983,6 +1147,7 @@ renderer.setAnimationLoop(() => {
   } else fireLight.intensity = 0;
   fireSnd.on(fire && stage.visible ? .12 + .3 * fire.grow * fire.hp / 100 : 0);
   for (const a of animals) {
+    if (TRAIN) { a.g.visible = false; continue; }
     if (!a.g.visible) continue;
     a.hop += dt * (fire ? 9 : 4); let y = Math.abs(Math.sin(a.hop)) * (fire ? .12 : .03);
     if (a.happy > 0) { a.happy -= dt; y = Math.abs(Math.sin(a.happy * 9)) * .35; }
@@ -995,9 +1160,10 @@ renderer.setAnimationLoop(() => {
         const T = 1.1, v = tgt.sub(from).divideScalar(T); v.y += 4.9 * T; waterP.spawn(from, v, T + .1, .08, .2); }
     }
   }
-  hoseUpdate(dt);
+  if (TRAIN) trUpdate(dt, t); else hoseUpdate(dt);
   for (const p of allP) p.update(dt);
   renderer.render(scene, camera);
+  if (TRAIN && TR.ext && TR.ext.visible) { renderer.autoClear = false; renderer.clearDepth(); renderer.render(extScene, extCam); renderer.autoClear = true; }
 });
 </script>
 </body>
