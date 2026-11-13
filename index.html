@@ -59,7 +59,7 @@
     <h1>🐉 불 끄기 대작전 🚒</h1>
     <p>장난꾸러기 용이 <b>우리 분원</b>에 불을 뿜었어요!</p>
     <p>분원 건물 곳곳(<b>②필로티 ③계단 ④커튼월 ⑤옥상 정원</b>)을<br>휴대폰으로 비추고, <b>화면을 꾹 눌러</b><br>동물 친구들과 함께 불을 꺼 주세요.</p>
-    <p class="small">처음에는 정문 <b>간판</b>(또는 ① 배너)을 비추면 용이 나타나요. 거기서 불 끄기를 연습해요!</p>
+    <p class="small">실외: 정문 <b>간판</b>을 비추면 용이 나타나요.<br>실내: <b>바리스타 체험실·그린월·안전체험관</b>을 비추면 악당들이 나타나요.</p>
     <div id="loading">준비 중… <span id="pct">0</span>%</div>
     <button class="big hidden" id="go">📷 카메라 켜고 시작</button>
     <p class="small" id="note"></p>
@@ -68,8 +68,8 @@
 
 <div class="overlay hidden" id="win">
   <div class="card">
-    <h1>🎉 분원의 불을 모두 껐어요!</h1>
-    <p>용이 "미안해, 다시는 장난 안 칠게!" 하고 사과했어요.</p>
+    <h1>🎉 불을 모두 껐어요!</h1>
+    <p id="winmsg">용이 "미안해, 다시는 장난 안 칠게!" 하고 사과했어요.</p>
     <div class="rules">
       <div>🗣️ 불이 나면 <b>"불이야!"</b> 하고 크게 외쳐요</div>
       <div>📞 어른에게 알리고 <b>119</b>에 신고해요</div>
@@ -119,9 +119,29 @@ const DEFAULT_ST = {
   12: { st: 5, kind: 'fire', name: '⑤ 옥상 정원 (근거리2)', w: 7.0, ground: -5.0, fire: [0, -0.4, 0.3], fireW: 3.5 },
   13: { st: 5, kind: 'fire', name: '⑤ 옥상 정원 (근거리3)', w: 7.0, ground: -5.0, fire: [0, -0.4, 0.3], fireW: 3.5 },
   14: { st: 5, kind: 'fire', name: '⑤ 옥상 정원 (근거리4)', w: 7.0, ground: -5.0, fire: [0, -0.4, 0.3], fireW: 3.5 },
+  // ---- 실내 코스 (ⓐ~ⓓ) : 악당이 바뀜, 크기 작게 ----
+  15: { st: 6, kind: 'fire', name: 'ⓐ 바리스타 체험실 (테이블)', w: 5.0, ground: -1.0, fire: [0, -0.2, 0.3], fireW: 1.2, villain: 'mummy', dragon: 1.4, animal: .5 },
+  16: { st: 6, kind: 'fire', name: 'ⓐ 바리스타 체험실 (전체)',   w: 8.0, ground: -1.6, fire: [-1.5, -0.6, 0.5], fireW: 1.2, villain: 'mummy', dragon: 1.4, animal: .5 },
+  17: { st: 7, kind: 'fire', name: 'ⓑ 그린월',                  w: 5.0, ground: -2.2, fire: [0.9, -1.9, 0.2], fireW: 1.4, villain: 'phoenix', dragon: 1.8, R: 1.6, center: [0, -0.4, 1.2], animal: .5 },
+  18: { st: 7, kind: 'fire', name: 'ⓑ 그린월 (옆에서)',          w: 5.0, ground: -2.2, fire: [0.8, -1.3, 0.2], fireW: 1.4, villain: 'phoenix', dragon: 1.8, R: 1.6, center: [0, 0, 1.2], animal: .5 },
+  19: { st: 8, kind: 'fire', name: 'ⓒ 비상대피 안내도·소독기',   w: 3.0, ground: -1.35, fire: [-0.6, 0, 0.2], fireW: 1.0, villain: 'golem', dragon: 1.5, R: .8, animal: .45 },
+  20: { st: 9, kind: 'fire', name: 'ⓓ 안전체험관 (정면)',        w: 5.5, ground: -2.9, fire: [0, 0.6, 0.3], fireW: 1.8, villain: 'boss', dragon: 2.0, R: 2, center: [0, 0.2, 1.5], animal: .5 },
+  21: { st: 9, kind: 'fire', name: 'ⓓ 안전체험관 (멀리서)',      w: 5.5, ground: -2.85, fire: [0, 0.9, 0.3], fireW: 1.8, villain: 'boss', dragon: 2.0, R: 2, center: [0, 0.4, 1.5], animal: .5 },
+  22: { st: 9, kind: 'fire', name: 'ⓓ 안전체험관 옆 신호등',    w: 3.5, ground: -1.7, fire: [0.2, 1.0, -0.5], fireW: 1.2, villain: 'boss', dragon: 1.8, R: 1.6, center: [0, 0.8, 1.2], animal: .45 },
 };
-const STATION_NAME = { 2: '② 필로티 2층 창문', 3: '③ 계단 옆 큰 창', 4: '④ 유리벽 커튼월', 5: '⑤ 옥상 정원' };
-const FIRE_STATIONS = [2, 3, 4, 5];
+// 악당: file=모델, fly=날기/걷기, mouth=불 나가는 곳(모델 기준), flap=날갯짓, name=부르는 이름
+const VILLAINS = {
+  dragon:  { file: 'dragon',    fly: true,  mouth: [0, .35, .36], flap: true,  name: '용',       verb: '불을 뿜어요' },
+  golem:   { file: 'lavagolem', fly: false, mouth: [0, .62, .25], flap: false, name: '용암 골렘', verb: '용암을 던져요' },
+  phoenix: { file: 'phoenix',   fly: true,  mouth: [0, .8, .15],  flap: true,  name: '불새',     verb: '불씨를 떨어뜨려요' },
+  boss:    { file: 'spaceboss', fly: true,  mouth: [-.25, .85, .2], flap: false, name: '우주 보스', verb: '불꽃을 쏴요' },
+  mummy:   { file: 'mummy',     fly: false, mouth: [0, .8, .3],   flap: false, name: '미라',     verb: '불씨를 던져요' },
+};
+const STATION_NAME = { 2: '② 필로티 2층 창문', 3: '③ 계단 옆 큰 창', 4: '④ 유리벽 커튼월', 5: '⑤ 옥상 정원', 6: 'ⓐ 바리스타 체험실', 7: 'ⓑ 그린월', 8: 'ⓒ 비상대피 안내도', 9: 'ⓓ 안전체험관' };
+const COURSES = { out: { st: [2, 3, 4, 5], lab: '②③④⑤', name: '실외' }, in: { st: [6, 7, 8, 9], lab: 'ⓐⓑⓒⓓ', name: '실내' } };
+let course = 'out';
+const courseOf = st => st >= 6 ? 'in' : 'out';
+const FIRE_STATIONS = () => COURSES[course].st;
 const FIRE_TARGETS = Object.keys(DEFAULT_ST).filter(k => DEFAULT_ST[k].kind === 'fire');
 const store = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } } };
 const ST = JSON.parse(JSON.stringify(DEFAULT_ST));
@@ -147,7 +167,9 @@ scene.add(new THREE.HemisphereLight(0xffffff, 0x88774f, 2.2));
 const sun = new THREE.DirectionalLight(0xffffff, 1.6); sun.position.set(0.3, 1, 0.6); scene.add(sun);
 const tipEl = $('tip');
 function tip(t) { tipEl.textContent = t; tipEl.classList.toggle('hidden', !t); }
-function updChips() { document.querySelectorAll('.chip').forEach(c => c.classList.toggle('done', done.has(+c.dataset.s))); }
+function updChips() {
+  const c = COURSES[course]; $('prog').innerHTML = (course === 'in' ? '🏠 ' : '🔥 ') + c.st.map((s, i) => `<span class="chip${done.has(s) ? ' done' : ''}">${[...c.lab][i]}</span>`).join('');
+}
 updChips();
 
 // 무대: 현재 스테이션 기준 (단위 m)
@@ -230,7 +252,7 @@ $('sound').onclick = () => { soundOn = !soundOn; $('sound').textContent = soundO
 // ================= 모델 =================
 function b64buf(id) { const el = document.getElementById(id); if (!el) return null; const s = atob(el.textContent.trim()); const b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b.buffer; }
 const loader = new GLTFLoader();
-const files = ['dragon', 'puppy', 'bunny', 'penguin'];
+const files = ['dragon', 'puppy', 'bunny', 'penguin', 'lavagolem', 'phoenix', 'spaceboss', 'mummy'];
 let loaded = 0; const pct = () => $('pct').textContent = Math.round(loaded / (files.length + 1) * 100);
 const loadModel = n => new Promise((res, rej) => {
   const buf = b64buf('m-' + n);
@@ -242,7 +264,7 @@ function normalize(obj, size) {
   obj.scale.setScalar(k); obj.position.set(-c.x * k, -b.min.y * k, -c.z * k); const w = new THREE.Group(); w.add(obj); return w;
 }
 const uTime = { value: 0 };
-let dragon, dragonModel; const animals = [];
+let dragon, dragonModel, vil = VILLAINS.dragon; const villainModels = {}; const animals = [];
 
 // ================= 게임 상태 =================
 let cur = null;            // 현재 스테이션 번호
@@ -253,12 +275,16 @@ const aimRing = new THREE.Mesh(new THREE.RingGeometry(.35, .5, 32), new THREE.Me
 aimRing.renderOrder = 6; aimRing.visible = false; stage.add(aimRing);
 
 function setupStation(i) {
-  cur = i; rebreath = 0; const s = ST[i]; fire = null; breath = null; allP.forEach(p => p.clear());
+  cur = i; rebreath = 0;
+  { const c = ST[i].st >= 6 ? 'in' : 'out'; if (c !== course) { course = c; updChips(); } }
+  animals.forEach(a => a.g.scale.setScalar((ST[i].animal || .8) / .8)); const s = ST[i]; fire = null; breath = null; allP.forEach(p => p.clear());
   animals.forEach((a, k) => { a.g.position.set(-1.2 + k * 1.2, s.ground, (s.w > 1 ? 1.2 : 1.0) + (k % 2) * .4); a.g.visible = true; });
-  if (dragonModel) { const ds = s.dragon || 6; dragonModel.scale.setScalar(ds); dragonModel.userData.ds = ds; }
-  if (s.kind === 'start') { tip('용이 나타났어요! 앗, 불을 뿜으려 해요… 연습으로 꺼 볼까요?'); sfx.found(); breath = { t: -1.2, dur: 2.2, lit: false }; setTimeout(sfx.breath, 1200); }
-  else if (done.has(s.st)) { tip(`${STATION_NAME[s.st]}은 이미 성공! 그래도 용이 또 왔어요 🔥`); breath = { t: -0.6, dur: 2.2, lit: false }; setTimeout(sfx.breath, 600); }
-  else { tip('앗! 용이 불을 뿜으려 해요… 위쪽을 지켜봐요!'); breath = { t: 0, dur: 2.2, lit: false }; sfx.breath(); }
+  vil = VILLAINS[s.villain || 'dragon'];
+  if (dragon) { dragon.clear(); dragonModel = villainModels[s.villain || 'dragon']; dragon.add(dragonModel);
+    const ds = s.dragon || (vil.fly ? 6 : 1.6); dragonModel.scale.setScalar(ds); dragonModel.userData.ds = ds; }
+  if (s.kind === 'start') { tip(`${vil.name}이(가) 나타났어요! 앗, ${vil.verb}… 연습으로 꺼 볼까요?`); sfx.found(); breath = { t: -1.2, dur: 2.2, lit: false }; setTimeout(sfx.breath, 1200); }
+  else if (done.has(s.st)) { tip(`${STATION_NAME[s.st] || '여기'}는 이미 성공! 그래도 ${vil.name}이(가) 또 왔어요 🔥`); breath = { t: -0.6, dur: 2.2, lit: false }; setTimeout(sfx.breath, 600); }
+  else { tip(`앗! ${vil.name}이(가) 나타났어요… ${vil.verb}!`); breath = { t: 0, dur: 2.2, lit: false }; sfx.breath(); }
 }
 function firePos() { const f = ST[cur].fire; return V(f[0], f[1], f[2]); }
 function damage(d) {
@@ -271,20 +297,21 @@ function damage(d) {
     done.add(ST[cur].st); store.set('gnfire-done', [...done]); updChips(); sfx.out();
     animals.forEach(a => a.happy = 1.4);
     floatAt('치익~ 꺼졌다!', p);
-    const left = FIRE_STATIONS.filter(n => !done.has(n));
+    const left = FIRE_STATIONS().filter(n => !done.has(n));
     if (!left.length) setTimeout(win, 1200);
-    else tip(`잘했어요! 용이 또 올 거예요. 남은 곳: ${left.map(n => '①②③④⑤'[n - 1]).join(' ')}`);
+    else tip(`잘했어요! ${vil.name}이(가) 또 올 거예요. 남은 곳: ${left.map(n => STATION_NAME[n].split(' ')[0]).join(' ')}`);
   }
 }
 function win() {
   if (won) return; won = true; sfx.win();
-  let code = store.get('gnfire-code', null);
-  if (!code) { code = { c: String(Math.floor(1000 + Math.random() * 9000)), t: Date.now() }; store.set('gnfire-code', code); }
-  $('code').textContent = '강릉-' + code.c;
+  let code = store.get('gnfire-code-' + course, null);
+  if (!code) { code = { c: String(Math.floor(1000 + Math.random() * 9000)), t: Date.now() }; store.set('gnfire-code-' + course, code); }
+  $('code').textContent = (course === 'in' ? '실내-' : '강릉-') + code.c;
   const d = new Date(code.t); $('when').textContent = `완료 시각 ${d.getMonth() + 1}월 ${d.getDate()}일 ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+  $('winmsg').textContent = course === 'in' ? '악당들이 "미안해, 다시는 장난 안 칠게!" 하고 사과했어요.' : '용이 "미안해, 다시는 장난 안 칠게!" 하고 사과했어요.';
   $('win').classList.remove('hidden'); tip('🚒 안전체험관으로 가서 선물을 받으세요!');
 }
-$('reset').onclick = () => { done = new Set(); store.set('gnfire-done', []); store.set('gnfire-code', null); won = false; updChips(); $('win').classList.add('hidden'); tip('표식을 비춰 다시 시작해요'); };
+$('reset').onclick = () => { done = new Set(); store.set('gnfire-done', []); store.set('gnfire-code-out', null); store.set('gnfire-code-in', null); won = false; updChips(); $('win').classList.add('hidden'); tip('표식을 비춰 다시 시작해요'); };
 function floatAt(t, p) {
   const s = stage.localToWorld(p.clone()).project(camera);
   const el = document.createElement('div'); el.className = 'float'; el.textContent = t;
@@ -421,16 +448,18 @@ function openCalib() {
 
 // ================= 루프 =================
 const clock = new THREE.Clock(), tmpQ = new THREE.Quaternion();
-Promise.all(files.map(loadModel)).then(([dS, pup, bun, pen]) => {
-  dS.traverse(o => { if (o.isMesh) o.material.onBeforeCompile = sh => {
+function addFlap(root) { root.traverse(o => { if (o.isMesh) o.material.onBeforeCompile = sh => {
     sh.uniforms.uTime = uTime;
     sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
       float ax = abs(transformed.x);
       float w = smoothstep(0.09, 0.5, ax) * smoothstep(0.17, 0.27, transformed.y) * smoothstep(-0.2, -0.08, transformed.z);
       float flap = sin(uTime * 7.0) * 0.55 * w;
       transformed.y += (ax - 0.09) * sin(flap) * 1.6;
-      transformed.x *= 1.0 - (1.0 - cos(flap)) * w * 0.6;`); }; });
-  dragonModel = dS; dragonModel.scale.setScalar(6); dragonModel.userData.ds = 6;
+      transformed.x *= 1.0 - (1.0 - cos(flap)) * w * 0.6;`); }; }); }
+Promise.all(files.map(loadModel)).then(([dS, pup, bun, pen, gol, pho, bos, mum]) => {
+  Object.assign(villainModels, { dragon: dS, golem: gol, phoenix: pho, boss: bos, mummy: mum });
+  for (const k in villainModels) { if (VILLAINS[k].flap) addFlap(villainModels[k]); villainModels[k].userData.ds = 6; }
+  dragonModel = dS; dragonModel.scale.setScalar(6);
   dragon = new THREE.Group(); dragon.add(dragonModel); stage.add(dragon);
   [[pup, '강아지'], [bun, '토끼'], [pen, '펭귄']].forEach(([m, name]) => { const g = normalize(m, .8); stage.add(g); animals.push({ g, name, hop: Math.random() * 6, happy: 0, spray: 0 }); });
   loaded++; pct();
@@ -449,7 +478,7 @@ renderer.setAnimationLoop(() => {
     mTmp.compose(est.p, est.q, est.s); mQ.makeRotationFromQuaternion(qNow.invert()); stage.matrix.multiplyMatrices(mQ, mTmp);
     stage.matrixWorldNeedsUpdate = true; stage.visible = true;
   }
-  if (rebreath > 0 && !fire && !breath && cur != null) { rebreath -= dt; if (rebreath <= 0) { breath = { t: 0, dur: 2.2, lit: false }; sfx.breath(); tip('앗! 용이 또 불을 뿜어요!'); } }
+  if (rebreath > 0 && !fire && !breath && cur != null) { rebreath -= dt; if (rebreath <= 0) { breath = { t: 0, dur: 2.2, lit: false }; sfx.breath(); tip(`앗! ${vil.name}이(가) 또 ${vil.verb}!`); } }
   // 표식을 오래 못 보면 장면을 내려놓고 다음 장소를 찾게 함 (불이 있으면 더 오래 유지)
   if (lock.has && visibleTarget < 0 && performance.now() - lastSeen > (fire ? 25000 : 12000)) {
     lock.has = false; est.has = false; stage.visible = false; cur = null; fire = null; breath = null; rebreath = 0; hoseOff();
@@ -460,21 +489,37 @@ renderer.setAnimationLoop(() => {
   for (const p of allP) p.mat.uniforms.uScale.value = innerHeight * renderer.getPixelRatio() * .9 * k;
 
   if (dragon && cur != null) {
-    const s = ST[cur], center = s.kind === 'start' ? V(0, cur === 0 ? 1.5 : 3.5, 1.5) : firePos().add(V(0, 3, 0));
-    const R = s.kind === 'start' ? (cur === 0 ? 5 : 3) : 5;
-    const speed = breath ? .15 : .35; flightA += speed * dt;
-    const path = a => center.clone().add(V(R * Math.cos(a), .8 * Math.sin(2 * a), R * .6 * Math.sin(a) + 1.5));
-    const p = path(flightA), n = path(flightA + .05);
-    dragon.position.copy(p); dragon.lookAt(n);
-    if (breath && s.fire) { dragon.lookAt(firePos()); dragon.rotateX(.2); }
-    dragonModel.position.y = -0.25 * dragonModel.userData.ds + Math.sin(t * 7) * .12;
+    const s = ST[cur], ds = dragonModel.userData.ds;
+    if (vil.fly) {
+      const center = s.center ? V(...s.center) : s.kind === 'start' ? V(0, cur === 0 ? 1.5 : 3.5, 1.5) : firePos().add(V(0, 3, 0));
+      const R = s.R || (s.kind === 'start' ? (cur === 0 ? 5 : 3) : 5);
+      const speed = breath ? .15 : .35; flightA += speed * dt;
+      const path = a => center.clone().add(V(R * Math.cos(a), .15 * R * Math.sin(2 * a), R * .6 * Math.sin(a) + .3 * R));
+      const p = path(flightA), n = path(flightA + .05);
+      dragon.position.copy(p); dragon.lookAt(n);
+      if (breath && s.fire) { dragon.lookAt(firePos()); dragon.rotateX(.2); }
+      if (s.villain === 'boss') dragon.rotateZ(Math.sin(t * 2) * .15);
+      dragonModel.position.y = -0.25 * ds + Math.sin(t * 7) * .02 * ds;
+    } else {
+      // 걷는 악당: 불 근처 바닥을 좌우로 어슬렁거리다 불을 던짐
+      const base = s.walk ? V(...s.walk) : V(firePos().x, s.ground, firePos().z + 1.2);
+      const R = s.R || 1.5, speed = breath ? 0 : .5; flightA += speed * dt;
+      const p = base.clone().add(V(R * Math.sin(flightA), 0, .3 * R * Math.cos(flightA)));
+      const n = base.clone().add(V(R * Math.sin(flightA + .05), 0, .3 * R * Math.cos(flightA + .05)));
+      dragon.position.copy(p);
+      if (breath) { const f = firePos(); f.y = p.y; dragon.lookAt(f.x === p.x && f.z === p.z ? stage.worldToLocal(camera.getWorldPosition(V())).setY(p.y) : f); }
+      else dragon.lookAt(n);
+      const step = Math.abs(Math.sin(t * (s.villain === 'golem' ? 3 : 4)));
+      dragonModel.position.y = step * .06 * ds; dragonModel.rotation.z = Math.sin(t * (s.villain === 'golem' ? 3 : 4)) * (s.villain === 'mummy' ? .12 : .06);
+      if (s.villain === 'golem' && step < .05 && Math.random() < .3) for (let i = 0; i < 6; i++) smokeP.spawn(p.clone().add(V(rnd(.3 * ds), .05, rnd(.3 * ds))), V(rnd(.3), .3, rnd(.3)), 1, .2 * ds, .5 * ds);
+    }
     if (breath) {
       breath.t += dt;
-      const mouth = dragonModel.localToWorld(V(0, .35, .36)); stage.worldToLocal(mouth);
+      const mouth = dragonModel.localToWorld(V(...vil.mouth)); stage.worldToLocal(mouth);
       const fp = firePos();
       if (breath.t > .6 && breath.t < breath.dur) for (let i = 0; i < 14; i++) {
-        const tgt = fp.clone().add(V(rnd(s.fireW * .3), rnd(.4), rnd(.3))); const dir = tgt.sub(mouth); const dist = dir.length(); dir.normalize(); const sp = 12 + Math.random() * 3;
-        fireP.spawn(mouth.clone(), dir.multiplyScalar(sp).add(V(rnd(1), rnd(1), rnd(1))), dist / sp * (.85 + Math.random() * .3), .25, 1.4);
+        const tgt = fp.clone().add(V(rnd(s.fireW * .3), rnd(.4), rnd(.3))); const dir = tgt.sub(mouth); const dist = dir.length(); dir.normalize(); const sp = Math.max(2.5, Math.min(14, dist * 3)) * (1 + Math.random() * .2);
+        fireP.spawn(mouth.clone(), dir.multiplyScalar(sp).add(V(rnd(1), rnd(1), rnd(1)).multiplyScalar(sp / 12)), dist / sp * (.85 + Math.random() * .3), .04 * ds, .23 * ds);
       }
       if (!breath.lit && breath.t > 1.4) { breath.lit = true; fire = { p: fp, hp: 100, grow: 0, acc: 0, sacc: 0 }; tip('불이 났어요! 화면을 꾹 눌러 물을 뿌려요 💧'); }
       if (breath.t > breath.dur + .4) breath = null;
