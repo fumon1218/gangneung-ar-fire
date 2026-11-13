@@ -59,7 +59,7 @@
     <h1>🐉 불 끄기 대작전 🚒</h1>
     <p>장난꾸러기 용이 <b>우리 분원</b>에 불을 뿜었어요!</p>
     <p>분원 건물 곳곳(<b>②필로티 ③계단 ④커튼월 ⑤옥상 정원</b>)을<br>휴대폰으로 비추고, <b>화면을 꾹 눌러</b><br>동물 친구들과 함께 불을 꺼 주세요.</p>
-    <p class="small">처음에는 정문 <b>간판</b>(또는 ① 배너)을 비추면 용이 나타나요.</p>
+    <p class="small">처음에는 정문 <b>간판</b>(또는 ① 배너)을 비추면 용이 나타나요. 거기서 불 끄기를 연습해요!</p>
     <div id="loading">준비 중… <span id="pct">0</span>%</div>
     <button class="big hidden" id="go">📷 카메라 켜고 시작</button>
     <p class="small" id="note"></p>
@@ -104,8 +104,8 @@ import { Controller } from 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mind
 // st: 스테이션 번호(0·1 = 출발), fire: 불 위치, fireW: 불 크기, ground: 땅 높이(동물이 서는 곳)
 const BANNER_W = 0.56, BANNER_GROUND = -1.38;
 const DEFAULT_ST = {
-  0:  { st: 1, kind: 'start', name: '간판',              w: 3.4, ground: -5.5 },
-  1:  { st: 1, kind: 'start', name: '① 배너',            w: BANNER_W, ground: BANNER_GROUND },
+  0:  { st: 1, kind: 'start', name: '간판',              w: 3.4, ground: -5.5, fire: [0.3, -2.2, 0.6], fireW: 2.6, dragon: 7 },
+  1:  { st: 1, kind: 'start', name: '① 배너',            w: BANNER_W, ground: BANNER_GROUND, fire: [0, 1.6, -0.5], fireW: 1.6, dragon: 5 },
   2:  { st: 2, kind: 'fire', name: '② 배너 (필로티)',     w: BANNER_W, ground: BANNER_GROUND, fire: [1.6, 4.2, -1.5], fireW: 2.2 },
   3:  { st: 3, kind: 'fire', name: '③ 배너 (계단 옆)',    w: BANNER_W, ground: BANNER_GROUND, fire: [6.0, 5.0, -5.0], fireW: 3.0 },
   4:  { st: 4, kind: 'fire', name: '④ 배너 (커튼월)',     w: BANNER_W, ground: BANNER_GROUND, fire: [-2.5, 4.0, -1.6], fireW: 3.0 },
@@ -251,7 +251,8 @@ aimRing.renderOrder = 6; aimRing.visible = false; stage.add(aimRing);
 function setupStation(i) {
   cur = i; const s = ST[i]; fire = null; breath = null; allP.forEach(p => p.clear());
   animals.forEach((a, k) => { a.g.position.set(-0.9 + k * 0.9, s.ground, (s.w > 1 ? 4 : 1.2) + (k % 2) * .5); a.g.visible = true; });
-  if (s.kind === 'start') { tip('용이 나타났어요! ②필로티 ③계단 ④커튼월 ⑤옥상 정원을 찾아가 비춰 보세요'); sfx.found(); }
+  if (dragonModel) { const ds = s.dragon || 6; dragonModel.scale.setScalar(ds); dragonModel.userData.ds = ds; }
+  if (s.kind === 'start') { tip('용이 나타났어요! 앗, 불을 뿜으려 해요… 연습으로 꺼 볼까요?'); sfx.found(); breath = { t: -1.2, dur: 2.2, lit: false }; setTimeout(sfx.breath, 1200); }
   else if (done.has(s.st)) tip(`${STATION_NAME[s.st]}의 불은 이미 껐어요! 다른 곳을 찾아가세요`);
   else { tip('앗! 용이 불을 뿜으려 해요… 위쪽을 지켜봐요!'); breath = { t: 0, dur: 2.2, lit: false }; sfx.breath(); }
 }
@@ -261,6 +262,7 @@ function damage(d) {
   if (fire.hp <= 0) {
     const p = fire.p; fire = null; fireLight.intensity = 0;
     for (let i = 0; i < 60; i++) steamP.spawn(p.clone().add(V(rnd(.8), rnd(.4), rnd(.4))), V(rnd(.8), 1.5 + Math.random() * 1.5, rnd(.5)), 1.4 + Math.random(), 1, 3);
+    if (ST[cur].kind === 'start') { sfx.out(); animals.forEach(a => a.happy = 1.4); floatAt('연습 성공!', p); tip('잘했어요! 이제 ②필로티 ③계단 ④커튼월 ⑤옥상 정원을 찾아가 비춰 보세요'); return; }
     done.add(ST[cur].st); store.set('gnfire-done', [...done]); updChips(); sfx.out();
     animals.forEach(a => a.happy = 1.4);
     floatAt('치익~ 꺼졌다!', p);
@@ -294,6 +296,9 @@ function devQ(out) {
   eul.set(gyro.b * D, gyro.a * D, -gyro.g * D, 'YXZ'); out.setFromEuler(eul); out.multiply(q1); out.multiply(qz.setFromAxisAngle(zee, -orient)); return out;
 }
 const lock = { m: new THREE.Matrix4(), q: new THREE.Quaternion(), has: false };
+// 실제 공간 기준 자세 추정 (자이로로 카메라 회전을 빼서 흔들림 평균)
+const est = { p: V(), q: new THREE.Quaternion(), s: V(1, 1, 1), has: false, idx: -1, lostAt: 0 };
+const _p = V(), _q = new THREE.Quaternion(), _s = V(), mQ = new THREE.Matrix4();
 const qNow = new THREE.Quaternion(), mTmp = new THREE.Matrix4(), mScale = new THREE.Matrix4();
 let visibleTarget = -1, lastSeen = 0;
 
@@ -302,7 +307,13 @@ let controller, postM = [];
 function anchorFound(idx, worldMatrix) {
   const m = new THREE.Matrix4(); m.elements = [...worldMatrix]; m.multiply(postM[idx]);
   const s = ST[idx]; mScale.makeScale(1 / s.w, 1 / s.w, 1 / s.w); m.multiply(mScale); // 내부 단위 = m
-  lock.m.copy(m); if (gyro.ok) devQ(lock.q); lock.has = true;
+  // 카메라 기준 → 실제 공간 기준
+  if (gyro.ok) devQ(qNow); else qNow.identity();
+  mQ.makeRotationFromQuaternion(qNow); m.premultiply(mQ); m.decompose(_p, _q, _s);
+  const fresh = !est.has || est.idx !== idx || performance.now() - lastSeen > 1500;
+  if (fresh) { est.p.copy(_p); est.q.copy(_q); est.s.copy(_s); est.idx = idx; est.n = 0; }
+  else { const a = est.n < 8 ? .3 : .06; est.p.lerp(_p, a); est.q.slerp(_q, a); est.s.lerp(_s, a); }
+  est.n = (est.n || 0) + 1; est.has = true; lock.has = true;
   visibleTarget = idx; lastSeen = performance.now();
   if (cur !== idx && !(cur != null && ST[cur].st === ST[idx].st && (fire || breath))) setupStation(idx); else if (cur !== idx) cur = idx;
   if (!running) running = true;
@@ -339,7 +350,7 @@ async function startAR() {
   }
   $('go').textContent = '표식 인식 준비 중…';
   controller = new Controller({
-    inputWidth: video.videoWidth, inputHeight: video.videoHeight, maxTrack: 1, filterMinCF: .0005, filterBeta: 8, warmupTolerance: 3, missTolerance: 6,
+    inputWidth: video.videoWidth, inputHeight: video.videoHeight, maxTrack: 1, filterMinCF: .0001, filterBeta: .001, warmupTolerance: 3, missTolerance: 8,
     onUpdate: d => {
       if (d.type === 'processDone') { window.__frames = (window.__frames || 0) + 1; return; }
       if (d.type !== 'updateMatrix') return;
@@ -414,7 +425,7 @@ Promise.all(files.map(loadModel)).then(([dS, pup, bun, pen]) => {
       float flap = sin(uTime * 7.0) * 0.55 * w;
       transformed.y += (ax - 0.09) * sin(flap) * 1.6;
       transformed.x *= 1.0 - (1.0 - cos(flap)) * w * 0.6;`); }; });
-  dragonModel = dS; dragonModel.scale.setScalar(4); dragonModel.position.y = -1;
+  dragonModel = dS; dragonModel.scale.setScalar(6); dragonModel.userData.ds = 6;
   dragon = new THREE.Group(); dragon.add(dragonModel); stage.add(dragon);
   [[pup, '강아지'], [bun, '토끼'], [pen, '펭귄']].forEach(([m, name]) => { const g = normalize(m, .8); stage.add(g); animals.push({ g, name, hop: Math.random() * 6, happy: 0, spray: 0 }); });
   loaded++; pct();
@@ -428,8 +439,8 @@ renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime; uTime.value = t;
   // 무대 위치: 표식이 보이면 그대로, 안 보이면 자이로로 붙잡아 두기
   if (lock.has) {
-    if (visibleTarget >= 0 || !gyro.ok) stage.matrix.copy(lock.m);
-    else { devQ(qNow); tmpQ.copy(qNow).invert().multiply(lock.q); mTmp.makeRotationFromQuaternion(tmpQ); stage.matrix.multiplyMatrices(mTmp, lock.m); }
+    if (gyro.ok) devQ(qNow); else qNow.identity();
+    mTmp.compose(est.p, est.q, est.s); mQ.makeRotationFromQuaternion(qNow.invert()); stage.matrix.multiplyMatrices(mQ, mTmp);
     stage.matrixWorldNeedsUpdate = true; stage.visible = true;
   }
   $('scan').classList.toggle('hidden', !controller || lock.has);
@@ -437,14 +448,14 @@ renderer.setAnimationLoop(() => {
   for (const p of allP) p.mat.uniforms.uScale.value = innerHeight * renderer.getPixelRatio() * .9 * k;
 
   if (dragon && cur != null) {
-    const s = ST[cur], center = s.fire ? firePos().add(V(0, 2.5, 0)) : V(0, s.kind === 'start' && cur === 0 ? 1.8 : 3.5, 1);
-    const R = s.kind === 'start' ? (cur === 0 ? 3.5 : 3) : 4.5;
+    const s = ST[cur], center = s.kind === 'start' ? V(0, cur === 0 ? 1.5 : 3.5, 1.5) : firePos().add(V(0, 3, 0));
+    const R = s.kind === 'start' ? (cur === 0 ? 5 : 3) : 5;
     const speed = breath ? .15 : .35; flightA += speed * dt;
     const path = a => center.clone().add(V(R * Math.cos(a), .8 * Math.sin(2 * a), R * .6 * Math.sin(a) + 1.5));
     const p = path(flightA), n = path(flightA + .05);
     dragon.position.copy(p); dragon.lookAt(n);
     if (breath && s.fire) { dragon.lookAt(firePos()); dragon.rotateX(.2); }
-    dragonModel.position.y = -1 + Math.sin(t * 7) * .1;
+    dragonModel.position.y = -0.25 * dragonModel.userData.ds + Math.sin(t * 7) * .12;
     if (breath) {
       breath.t += dt;
       const mouth = dragonModel.localToWorld(V(0, .35, .36)); stage.worldToLocal(mouth);
