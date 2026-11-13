@@ -156,9 +156,9 @@
       <ellipse cx="200" cy="399" rx="52" ry="7" fill="rgba(0,0,0,.25)"/>
       <ellipse cx="312" cy="399" rx="36" ry="6" fill="rgba(0,0,0,.2)"/>
       <g id="exFire" transform="translate(312 400)"><g id="exFireS"><image href="ex_fire.webp" x="-47.2" y="-84.7" width="94" height="94"/></g></g>
+      <image href="ex_body.webp" x="100" y="127" width="186.4" height="279.6"/>
       <path id="exHose" d="" fill="none" stroke="#1d1d1f" stroke-width="10" stroke-linecap="round"/>
       <path id="exHoseHi" d="" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="3" stroke-linecap="round" transform="translate(-2 -2)"/>
-      <image href="ex_body.webp" x="100" y="127" width="186.4" height="279.6"/>
       <g id="exLever"><image href="ex_lever.webp" x="100" y="127" width="186.4" height="279.6"/></g>
       <g id="exPin"><image href="ex_pin.webp" x="100" y="127" width="186.4" height="279.6"/></g>
       <g id="exNoz"><image href="ex_noz.webp" x="-43.5" y="-84.7" width="87.9" height="87.9"/></g>
@@ -550,7 +550,7 @@ $('lobbyHero').onclick = () => { fillGrid($('heroGrid2')); $('picker').classList
 $('extBtn').onclick = () => openExt();
 
 // ================= 소화기 4단계 연습 =================
-const EX = { step: 0, pin: false, aim: false, hold: 0, squeezing: false, sweeps: 0, lastDir: 0, ext: 0, fire: 1, nx: 255, ny: 398, ang: -8, drag: null, parts: [], raf: 0 };
+const EX = { step: 0, pin: false, aim: false, hold: 0, squeezing: false, sweeps: 0, lastDir: 0, ext: 0, fire: 1, nx: 258, ny: 296, ang: 180, drag: null, parts: [], raf: 0 };
 const EX_STEPS = [
   ['① 안전핀을 뽑아요', '노란 고리를 잡고 밖으로 쭉 당겨요'],
   ['② 호스를 불 쪽으로!', '비상구(문)를 등지고 서서, 호스 끝을 파란 동그라미로 옮겨요'],
@@ -567,13 +567,14 @@ function exSet(step) {
   $('exT').textContent = EX_STEPS[step][0]; $('exS').textContent = EX_STEPS[step][1]; say(EX_STEPS[step][0].slice(2) + '. ' + EX_STEPS[step][1]);
   $('exPin').classList.toggle('glow', step === 0); $('exNoz').classList.toggle('glow', step === 1); $('exLever').classList.toggle('glow', step === 2);
   $('exTarget').style.display = step === 1 ? '' : 'none';
-  exHand(...[[137, 182], [EX.nx, EX.ny - 40], [175, 150], [272, 300]][step]);
+  exHand(...[[137, 182], [EX.nx, EX.ny + 45], [175, 150], [272, 300]][step]);
 }
 function exDraw() {
   const vx = 238, vy = 185; const n = $('exNoz');
   n.setAttribute('transform', `translate(${EX.nx} ${EX.ny}) rotate(${EX.ang})`);
-  const ar = EX.ang * Math.PI / 180, bx = EX.nx - Math.sin(ar) * 6, by = EX.ny + Math.cos(ar) * 6, hx = bx - Math.sin(ar) * 40, hy = by + Math.cos(ar) * 40;
-  const d = `M${vx} ${vy} C ${vx + 45} ${vy + 5}, ${vx + 30} ${Math.max(vy, hy) + 30}, ${hx} ${hy} S ${bx} ${by}, ${bx} ${by}`;
+  const ar = EX.ang * Math.PI / 180, bx = EX.nx - Math.sin(ar) * 4, by = EX.ny + Math.cos(ar) * 4;
+  const cx2 = Math.max(258, bx - Math.sin(ar) * 55), cy2 = Math.min(394, by + Math.cos(ar) * 55);
+  const d = `M${vx} ${vy} C ${vx + 42} ${vy + 4}, ${cx2} ${cy2}, ${bx} ${by}`;
   $('exHose').setAttribute('d', d); $('exHoseHi').setAttribute('d', d);
   $('exLever').setAttribute('transform', EX.squeezing ? 'rotate(7 216 170)' : '');
   $('exFireS').setAttribute('transform', `scale(${Math.max(.001, EX.fire) * (1 + Math.sin(performance.now() / 90) * .04)} ${Math.max(.001, EX.fire) * (1 + Math.sin(performance.now() / 70) * .06)})`);
@@ -591,7 +592,7 @@ function exLoop() {
   exDraw(); EX.raf = requestAnimationFrame(exLoop);
 }
 function openExt() {
-  Object.assign(EX, { pin: false, squeezing: false, sweeps: 0, lastDir: 0, fire: 1, nx: 255, ny: 398, ang: -8, parts: [], drag: null, hold: 0 });
+  Object.assign(EX, { pin: false, squeezing: false, sweeps: 0, lastDir: 0, fire: 1, nx: 258, ny: 296, ang: 180, parts: [], drag: null, hold: 0 });
   $('exPin').setAttribute('transform', ''); $('exPin').style.opacity = 1; $('exBack').textContent = '↩ 로비로'; $('exBack').className = 'big gray';
   $('ext').classList.remove('hidden'); audio(); exSet(0); cancelAnimationFrame(EX.raf); exLoop();
 }
@@ -600,7 +601,7 @@ $('exSay').onclick = () => { if (EX.step < 4) say(EX_STEPS[EX.step][0].slice(2) 
 $('exStage').addEventListener('pointerdown', e => {
   const [x, y] = exPt(e); e.preventDefault(); $('exStage').setPointerCapture(e.pointerId);
   if (EX.step === 0 && Math.hypot(x - 137, y - 182) < 42) EX.drag = { k: 'pin', x0: x, y0: y };
-  else if (EX.step === 1 && Math.hypot(x - EX.nx, y - (EX.ny - 40)) < 55) EX.drag = { k: 'noz', dx: EX.nx - x, dy: EX.ny - y };
+  else if (EX.step === 1 && Math.hypot(x - (EX.nx + 40 * Math.sin(EX.ang * Math.PI / 180)), y - (EX.ny - 40 * Math.cos(EX.ang * Math.PI / 180))) < 55) EX.drag = { k: 'noz', dx: EX.nx - x, dy: EX.ny - y, d0: Math.hypot(EX.nx - 272, EX.ny - 300) || 1 };
   else if (EX.step === 2 && x > 110 && x < 235 && y > 130 && y < 215) { EX.drag = { k: 'hold', t0: performance.now() }; EX.squeezing = true; sfx.pop(); noise(.6, 3000, 1500, .15, 'bandpass'); }
   else if (EX.step === 3) { EX.drag = { k: 'sweep', x0: x, ext: x }; EX.lastDir = 0; EX.squeezing = true; hoseSnd.on(.1); }
 });
@@ -608,7 +609,7 @@ $('exStage').addEventListener('pointermove', e => {
   if (!EX.drag) return; const [x, y] = exPt(e), d = EX.drag;
   if (d.k === 'pin') { const dd = Math.hypot(x - d.x0, y - d.y0); $('exPin').setAttribute('transform', `translate(${Math.min(0, x - d.x0)} ${y - d.y0})`);
     if (dd > 60) { EX.drag = null; $('exPin').style.opacity = 0; sfx.pop(); setTimeout(() => exSet(1), 300); } }
-  else if (d.k === 'noz') { EX.nx = Math.max(200, Math.min(340, x + d.dx)); EX.ny = Math.max(200, Math.min(400, y + d.dy)); EX.ang = Math.max(-8, Math.min(120, (400 - EX.ny) * .9 - 8));
+  else if (d.k === 'noz') { EX.nx = Math.max(200, Math.min(340, x + d.dx)); EX.ny = Math.max(200, Math.min(400, y + d.dy)); EX.ang = 140 + 40 * Math.min(1, Math.hypot(EX.nx - 272, EX.ny - 300) / d.d0);
     if (Math.hypot(EX.nx - 272, EX.ny - 300) < 30) { EX.drag = null; EX.nx = 272; EX.ny = 300; EX.ang = 140; sfx.boing(); setTimeout(() => exSet(2), 300); } }
   else if (d.k === 'sweep') { EX.ang = 140 + Math.max(-20, Math.min(20, (x - d.x0) / 2.5));
     if (EX.lastDir === 0) { if (Math.abs(x - d.x0) > 25) { EX.lastDir = Math.sign(x - d.x0); d.ext = x; } }
