@@ -115,6 +115,10 @@ const DEFAULT_ST = {
   8:  { st: 3, kind: 'fire', name: '③ 계단·옆벽',         w: 6.5, ground: -1.6, fire: [9.0, 6.5, -3.0], fireW: 3.0 },
   9:  { st: 4, kind: 'fire', name: '④ 커튼월',            w: 5.0, ground: -5.0, fire: [0, 0, 0.3], fireW: 3.6 },
   10: { st: 5, kind: 'fire', name: '⑤ 옥상 정원',         w: 5.5, ground: -5.5, fire: [-0.2, -1.3, 0.3], fireW: 3.0 },
+  11: { st: 5, kind: 'fire', name: '⑤ 옥상 정원 (근거리1)', w: 7.0, ground: -5.0, fire: [0, -0.4, 0.3], fireW: 3.5 },
+  12: { st: 5, kind: 'fire', name: '⑤ 옥상 정원 (근거리2)', w: 7.0, ground: -5.0, fire: [0, -0.4, 0.3], fireW: 3.5 },
+  13: { st: 5, kind: 'fire', name: '⑤ 옥상 정원 (근거리3)', w: 7.0, ground: -5.0, fire: [0, -0.4, 0.3], fireW: 3.5 },
+  14: { st: 5, kind: 'fire', name: '⑤ 옥상 정원 (근거리4)', w: 7.0, ground: -5.0, fire: [0, -0.4, 0.3], fireW: 3.5 },
 };
 const STATION_NAME = { 2: '② 필로티 2층 창문', 3: '③ 계단 옆 큰 창', 4: '④ 유리벽 커튼월', 5: '⑤ 옥상 정원' };
 const FIRE_STATIONS = [2, 3, 4, 5];
@@ -250,7 +254,7 @@ aimRing.renderOrder = 6; aimRing.visible = false; stage.add(aimRing);
 
 function setupStation(i) {
   cur = i; rebreath = 0; const s = ST[i]; fire = null; breath = null; allP.forEach(p => p.clear());
-  animals.forEach((a, k) => { a.g.position.set(-0.9 + k * 0.9, s.ground, (s.w > 1 ? 4 : 1.2) + (k % 2) * .5); a.g.visible = true; });
+  animals.forEach((a, k) => { a.g.position.set(-1.2 + k * 1.2, s.ground, (s.w > 1 ? 1.2 : 1.0) + (k % 2) * .4); a.g.visible = true; });
   if (dragonModel) { const ds = s.dragon || 6; dragonModel.scale.setScalar(ds); dragonModel.userData.ds = ds; }
   if (s.kind === 'start') { tip('용이 나타났어요! 앗, 불을 뿜으려 해요… 연습으로 꺼 볼까요?'); sfx.found(); breath = { t: -1.2, dur: 2.2, lit: false }; setTimeout(sfx.breath, 1200); }
   else if (done.has(s.st)) { tip(`${STATION_NAME[s.st]}은 이미 성공! 그래도 용이 또 왔어요 🔥`); breath = { t: -0.6, dur: 2.2, lit: false }; setTimeout(sfx.breath, 600); }
