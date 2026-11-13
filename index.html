@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>강릉분원 불 끄기 대작전 AR</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#1d2433;--paper:#fffaf2;--fire:#ff6a2b;--water:#2f8fe6}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:'Noto Sans KR',sans-serif;color:var(--ink);touch-action:none;-webkit-user-select:none;user-select:none}
+  #cam{position:fixed;z-index:0;object-fit:cover}
+  canvas{position:fixed;inset:0;z-index:1;display:block}
+  .hud{position:fixed;top:max(10px,env(safe-area-inset-top));left:10px;right:10px;display:flex;gap:8px;justify-content:space-between;align-items:flex-start;z-index:5;pointer-events:none}
+  .pill{background:rgba(255,250,242,.93);border-radius:999px;padding:7px 14px;font-family:'Jua',sans-serif;font-size:19px;box-shadow:0 2px 8px rgba(0,0,0,.2);display:flex;gap:6px;align-items:center}
+  .pill.btn{pointer-events:auto;border:none;color:var(--ink)}
+  .chip{display:inline-flex;width:30px;height:30px;border-radius:50%;align-items:center;justify-content:center;background:#e6e1d6;color:#8a8475;font-size:17px}
+  .chip.done{background:#2aa86b;color:#fff}
+  .tip{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);background:rgba(29,36,51,.85);color:#fff;border-radius:16px;padding:10px 18px;font-size:17px;text-align:center;width:max-content;max-width:92vw;z-index:5;pointer-events:none}
+  #scan{position:fixed;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  #scan .frame{width:62vmin;height:80vmin;border:5px dashed rgba(255,255,255,.85);border-radius:24px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:14px;color:#fff;font-family:'Jua',sans-serif;font-size:21px;text-shadow:0 2px 4px #000;animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{50%{transform:scale(1.04)}}
+  .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(20,30,50,.55);z-index:10;padding:16px}
+  .card{background:var(--paper);border-radius:24px;max-width:440px;width:100%;padding:24px 22px 20px;box-shadow:0 10px 40px rgba(0,0,0,.3);text-align:center;max-height:92vh;overflow:auto}
+  .card h1{font-family:'Jua',sans-serif;font-weight:400;font-size:30px;margin:4px 0 10px;line-height:1.2}
+  .card p{font-size:17px;line-height:1.6;margin:8px 0}
+  .org{font-size:13px;color:#6b7385;margin:0}
+  .big{font-family:'Jua',sans-serif;font-size:23px;border:none;border-radius:16px;padding:13px 26px;margin-top:12px;cursor:pointer;color:#fff;background:var(--fire);box-shadow:0 4px 0 #c94a14;min-width:200px}
+  .big.blue{background:var(--water);box-shadow:0 4px 0 #1d6bb0}
+  .big.gray{background:#8a8f9c;box-shadow:0 4px 0 #5d626e;font-size:18px;min-width:0}
+  .rules{text-align:left;background:#fff;border-radius:14px;padding:12px 16px;margin:12px 0;font-size:16px;line-height:1.7}
+  .rules b{color:var(--fire)}
+  .code{font-family:'Jua',sans-serif;font-size:34px;letter-spacing:4px;background:#ffe9b8;border-radius:12px;padding:6px 10px;margin:8px 0 2px}
+  .small{font-size:13px;color:#6b7385}
+  .hidden{display:none!important}
+  .float{position:fixed;pointer-events:none;font-family:'Jua',sans-serif;font-size:26px;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.6);z-index:6;animation:up 1.1s ease-out forwards;transform:translateX(-50%)}
+  @keyframes up{to{opacity:0;margin-top:-60px}}
+  #calib{position:fixed;left:8px;right:8px;bottom:8px;z-index:8;background:rgba(255,255,255,.95);border-radius:14px;padding:10px;font-size:13px}
+  #calib label{display:flex;align-items:center;gap:6px;margin:3px 0}
+  #calib input[type=range]{flex:1}
+  #calib textarea{width:100%;height:60px;font-size:11px}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<video id="cam" playsinline muted autoplay></video>
+<div class="hud">
+  <div class="pill" id="prog">🔥 <span class="chip" data-s="2">②</span><span class="chip" data-s="3">③</span><span class="chip" data-s="4">④</span><span class="chip" data-s="5">⑤</span></div>
+  <button class="pill btn" id="sound" aria-label="소리 켜고 끄기">🔊</button>
+</div>
+<div id="scan" class="hidden"><div class="frame">건물이나 배너를 이 칸에 맞춰 비춰요</div></div>
+<div class="tip hidden" id="tip"></div>
+
+<div class="overlay" id="start">
+  <div class="card">
+    <p class="org">강원특별자치도교육청특수교육원 강릉분원</p>
+    <h1>🐉 불 끄기 대작전 🚒</h1>
+    <p>장난꾸러기 용이 <b>우리 분원</b>에 불을 뿜었어요!</p>
+    <p>분원 건물 곳곳(<b>②필로티 ③계단 ④커튼월 ⑤옥상 정원</b>)을<br>휴대폰으로 비추고, <b>화면을 꾹 눌러</b><br>동물 친구들과 함께 불을 꺼 주세요.</p>
+    <p class="small">처음에는 정문 <b>간판</b>(또는 ① 배너)을 비추면 용이 나타나요.</p>
+    <div id="loading">준비 중… <span id="pct">0</span>%</div>
+    <button class="big hidden" id="go">📷 카메라 켜고 시작</button>
+    <p class="small" id="note"></p>
+  </div>
+</div>
+
+<div class="overlay hidden" id="win">
+  <div class="card">
+    <h1>🎉 분원의 불을 모두 껐어요!</h1>
+    <p>용이 "미안해, 다시는 장난 안 칠게!" 하고 사과했어요.</p>
+    <div class="rules">
+      <div>🗣️ 불이 나면 <b>"불이야!"</b> 하고 크게 외쳐요</div>
+      <div>📞 어른에게 알리고 <b>119</b>에 신고해요</div>
+      <div>🧎 젖은 수건으로 입을 막고 <b>낮은 자세</b>로 대피해요</div>
+    </div>
+    <p><b>안전체험관</b>에 가서 선생님께<br>이 화면을 보여 주고 선물을 받으세요!</p>
+    <div class="code" id="code">----</div>
+    <div class="small" id="when"></div>
+    <button class="big gray" id="reset">처음부터 다시 하기</button>
+  </div>
+</div>
+
+<div id="calib" class="hidden">
+  <b>현장 보정</b> · 표식을 비춘 채로 불 위치를 맞춘 뒤 아래 값을 복사해 보내 주세요.
+  <label>표식 <select id="cSt"></select></label>
+  <label>좌우 <input type="range" id="cX" min="-12" max="12" step="0.1"><span id="vX"></span>m</label>
+  <label>높이 <input type="range" id="cY" min="-3" max="12" step="0.1"><span id="vY"></span>m</label>
+  <label>앞뒤 <input type="range" id="cZ" min="-10" max="6" step="0.1"><span id="vZ"></span>m</label>
+  <label>불 크기 <input type="range" id="cW" min="0.5" max="6" step="0.1"><span id="vW"></span>m</label>
+  <textarea id="cOut" readonly></textarea>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { Controller } from 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js';
+
+// ================= 스테이션 설정 =================
+// targets.mind 안의 순서대로. 모든 길이는 미터.
+// 기준점 = 인식 대상(간판·배너 그림·건물 부분) 한가운데. x: 오른쪽+, y: 위+, z: 벽에서 나를 향해+
+// w: 인식 대상의 실제 가로 길이(m). X배너 그림 = 0.56
+// st: 스테이션 번호(0·1 = 출발), fire: 불 위치, fireW: 불 크기, ground: 땅 높이(동물이 서는 곳)
+const BANNER_W = 0.56, BANNER_GROUND = -1.38;
+const DEFAULT_ST = {
+  0:  { st: 1, kind: 'start', name: '간판',              w: 3.4, ground: -5.5 },
+  1:  { st: 1, kind: 'start', name: '① 배너',            w: BANNER_W, ground: BANNER_GROUND },
+  2:  { st: 2, kind: 'fire', name: '② 배너 (필로티)',     w: BANNER_W, ground: BANNER_GROUND, fire: [1.6, 4.2, -1.5], fireW: 2.2 },
+  3:  { st: 3, kind: 'fire', name: '③ 배너 (계단 옆)',    w: BANNER_W, ground: BANNER_GROUND, fire: [6.0, 5.0, -5.0], fireW: 3.0 },
+  4:  { st: 4, kind: 'fire', name: '④ 배너 (커튼월)',     w: BANNER_W, ground: BANNER_GROUND, fire: [-2.5, 4.0, -1.6], fireW: 3.0 },
+  5:  { st: 5, kind: 'fire', name: '⑤ 배너 (옥상 정원)',  w: BANNER_W, ground: BANNER_GROUND, fire: [-4.5, 3.4, -3.5], fireW: 3.0 },
+  6:  { st: 2, kind: 'fire', name: '② 2층 모서리 창',     w: 3.6, ground: -5.3, fire: [0, 0.1, 0.3], fireW: 2.4 },
+  7:  { st: 2, kind: 'fire', name: '② 필로티 기둥',       w: 5.1, ground: -2.6, fire: [1.0, 3.2, 0.8], fireW: 2.4 },
+  8:  { st: 3, kind: 'fire', name: '③ 계단·옆벽',         w: 6.5, ground: -1.6, fire: [9.0, 6.5, -3.0], fireW: 3.0 },
+  9:  { st: 4, kind: 'fire', name: '④ 커튼월',            w: 5.0, ground: -5.0, fire: [0, 0, 0.3], fireW: 3.6 },
+  10: { st: 5, kind: 'fire', name: '⑤ 옥상 정원',         w: 5.5, ground: -5.5, fire: [-0.2, -1.3, 0.3], fireW: 3.0 },
+};
+const STATION_NAME = { 2: '② 필로티 2층 창문', 3: '③ 계단 옆 큰 창', 4: '④ 유리벽 커튼월', 5: '⑤ 옥상 정원' };
+const FIRE_STATIONS = [2, 3, 4, 5];
+const FIRE_TARGETS = Object.keys(DEFAULT_ST).filter(k => DEFAULT_ST[k].kind === 'fire');
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } } };
+const ST = JSON.parse(JSON.stringify(DEFAULT_ST));
+const calibSaved = store.get('gnfire-calib', {});
+for (const k in calibSaved) Object.assign(ST[k], calibSaved[k]);
+let done = new Set(store.get('gnfire-done', []));
+
+// ================= 기본 =================
+const $ = id => document.getElementById(id);
+const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
+const rnd = (a = 1) => (Math.random() * 2 - 1) * a;
+const video = $('cam');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.setClearColor(0, 0);
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 10, 1e6);
+scene.add(camera);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x88774f, 2.2));
+const sun = new THREE.DirectionalLight(0xffffff, 1.6); sun.position.set(0.3, 1, 0.6); scene.add(sun);
+const tipEl = $('tip');
+function tip(t) { tipEl.textContent = t; tipEl.classList.toggle('hidden', !t); }
+function updChips() { document.querySelectorAll('.chip').forEach(c => c.classList.toggle('done', done.has(+c.dataset.s))); }
+updChips();
+
+// 무대: 현재 스테이션 기준 (단위 m)
+const stage = new THREE.Group(); stage.matrixAutoUpdate = false; stage.visible = false; scene.add(stage);
+
+// ================= 파티클 =================
+const VS = `attribute float size; attribute float alpha; attribute vec3 color; varying float vA; varying vec3 vC; uniform float uScale;
+void main(){ vA=alpha; vC=color; vec4 mv=modelViewMatrix*vec4(position,1.); gl_Position=projectionMatrix*mv; gl_PointSize=size*uScale/-mv.z; }`;
+const FS = `varying float vA; varying vec3 vC; void main(){ float d=length(gl_PointCoord-.5); if(d>.5) discard; gl_FragColor=vec4(vC, smoothstep(.5,0.,d)*vA); }`;
+class Particles {
+  constructor(n, blending, kind) {
+    Object.assign(this, { n, kind, i: 0 });
+    for (const k of ['pos', 'col', 'vel']) this[k] = new Float32Array(n * 3);
+    for (const k of ['size', 'alpha', 'life', 'max', 's0', 's1']) this[k] = new Float32Array(n);
+    const g = this.g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(this.pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(this.col, 3));
+    g.setAttribute('size', new THREE.BufferAttribute(this.size, 1)); g.setAttribute('alpha', new THREE.BufferAttribute(this.alpha, 1));
+    this.mat = new THREE.ShaderMaterial({ vertexShader: VS, fragmentShader: FS, transparent: true, depthWrite: false, depthTest: false, blending, uniforms: { uScale: { value: 1 } } });
+    const p = new THREE.Points(g, this.mat); p.frustumCulled = false; p.renderOrder = 5; stage.add(p);
+  }
+  spawn(p, v, life, s0, s1) { const i = this.i; this.i = (i + 1) % this.n; this.pos.set([p.x, p.y, p.z], i * 3); this.vel.set([v.x, v.y, v.z], i * 3); this.life[i] = this.max[i] = life; this.s0[i] = s0; this.s1[i] = s1; }
+  clear() { this.life.fill(0); }
+  update(dt) {
+    const grav = this.kind === 'water' ? -9.8 : this.kind === 'fire' ? 1.5 : .6;
+    for (let i = 0; i < this.n; i++) {
+      if (this.life[i] <= 0) { this.alpha[i] = 0; this.size[i] = 0; continue; }
+      this.life[i] -= dt; const t = 1 - Math.max(0, this.life[i]) / this.max[i], j = i * 3;
+      this.vel[j + 1] += grav * dt;
+      if (this.kind !== 'water') { this.vel[j] *= .985; this.vel[j + 2] *= .985; }
+      this.pos[j] += this.vel[j] * dt; this.pos[j + 1] += this.vel[j + 1] * dt; this.pos[j + 2] += this.vel[j + 2] * dt;
+      this.size[i] = this.s0[i] + (this.s1[i] - this.s0[i]) * t;
+      let r, g, b, a;
+      if (this.kind === 'fire') {
+        if (t < .18) { const k = t / .18; r = 1; g = 1 - .15 * k; b = .75 - .55 * k; }
+        else if (t < .55) { const k = (t - .18) / .37; r = 1; g = .85 - .45 * k; b = .2 - .15 * k; }
+        else { const k = (t - .55) / .45; r = 1 - .45 * k; g = .4 - .32 * k; b = .05; }
+        a = Math.pow(1 - t, 1.3) * .85;
+      } else if (this.kind === 'smoke') { r = g = b = .4 + .3 * t; a = .4 * (1 - t) * Math.min(1, t * 6); }
+      else if (this.kind === 'steam') { r = g = b = .97; a = .6 * (1 - t); }
+      else { r = .5; g = .8; b = 1; a = .95 * (1 - t * t); }
+      this.col.set([r, g, b], j); this.alpha[i] = a;
+    }
+    for (const k of ['position', 'color', 'size', 'alpha']) this.g.attributes[k].needsUpdate = true;
+  }
+}
+const smokeP = new Particles(500, THREE.NormalBlending, 'smoke');
+const fireP = new Particles(2600, THREE.AdditiveBlending, 'fire');
+const steamP = new Particles(500, THREE.NormalBlending, 'steam');
+const waterP = new Particles(1400, THREE.NormalBlending, 'water');
+const allP = [smokeP, fireP, steamP, waterP];
+
+// ================= 소리 =================
+let ac = null, soundOn = true;
+function audio() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { } } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+function noise(dur, f0, f1, vol, type = 'lowpass') {
+  if (!soundOn || !audio()) return; const t = ac.currentTime;
+  const b = ac.createBuffer(1, ac.sampleRate * dur, ac.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const s = ac.createBufferSource(); s.buffer = b; const f = ac.createBiquadFilter(); f.type = type;
+  f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  const g = ac.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .06); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  s.connect(f).connect(g).connect(ac.destination); s.start();
+}
+function chime(notes) {
+  if (!soundOn || !audio()) return; const t = ac.currentTime;
+  notes.forEach((n, i) => { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.value = n;
+    g.gain.setValueAtTime(0, t + i * .12); g.gain.linearRampToValueAtTime(.18, t + i * .12 + .02); g.gain.exponentialRampToValueAtTime(.001, t + i * .12 + .5);
+    o.connect(g).connect(ac.destination); o.start(t + i * .12); o.stop(t + i * .12 + .6); });
+}
+const sfx = { breath: () => noise(1.6, 900, 160, .35), out: () => chime([660, 880]), win: () => chime([523, 659, 784, 1047]), found: () => chime([440, 554, 659]) };
+let hoseSnd = null;
+function hoseSound(on) {
+  if (on && !hoseSnd && soundOn && audio()) {
+    const b = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const s = ac.createBufferSource(); s.buffer = b; s.loop = true; const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2200;
+    const g = ac.createGain(); g.gain.value = .12; s.connect(f).connect(g).connect(ac.destination); s.start(); hoseSnd = s;
+  } else if (!on && hoseSnd) { try { hoseSnd.stop(); } catch (e) { } hoseSnd = null; }
+}
+$('sound').onclick = () => { soundOn = !soundOn; $('sound').textContent = soundOn ? '🔊' : '🔇'; if (!soundOn) hoseSound(false); };
+
+// ================= 모델 =================
+function b64buf(id) { const el = document.getElementById(id); if (!el) return null; const s = atob(el.textContent.trim()); const b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b.buffer; }
+const loader = new GLTFLoader();
+const files = ['dragon', 'puppy', 'bunny', 'penguin'];
+let loaded = 0; const pct = () => $('pct').textContent = Math.round(loaded / (files.length + 1) * 100);
+const loadModel = n => new Promise((res, rej) => {
+  const buf = b64buf('m-' + n);
+  const ok = g => { loaded++; pct(); res(g.scene); };
+  if (buf) setTimeout(() => loader.parse(buf, '', ok, rej), 20); else loader.load(n + '.glb', ok, undefined, rej);
+});
+function normalize(obj, size) {
+  const b = new THREE.Box3().setFromObject(obj), s = b.getSize(V()), c = b.getCenter(V()), k = size / Math.max(s.x, s.y, s.z);
+  obj.scale.setScalar(k); obj.position.set(-c.x * k, -b.min.y * k, -c.z * k); const w = new THREE.Group(); w.add(obj); return w;
+}
+const uTime = { value: 0 };
+let dragon, dragonModel; const animals = [];
+
+// ================= 게임 상태 =================
+let cur = null;            // 현재 스테이션 번호
+let fire = null;           // { p, hp, grow, acc, sacc }
+let breath = null, flightA = 0, running = false, won = false;
+const fireLight = new THREE.PointLight(0xff7a2a, 0, 0, 0); stage.add(fireLight);
+const aimRing = new THREE.Mesh(new THREE.RingGeometry(.35, .5, 32), new THREE.MeshBasicMaterial({ color: 0x4fb3ff, transparent: true, opacity: .85, depthTest: false, side: THREE.DoubleSide }));
+aimRing.renderOrder = 6; aimRing.visible = false; stage.add(aimRing);
+
+function setupStation(i) {
+  cur = i; const s = ST[i]; fire = null; breath = null; allP.forEach(p => p.clear());
+  animals.forEach((a, k) => { a.g.position.set(-0.9 + k * 0.9, s.ground, (s.w > 1 ? 4 : 1.2) + (k % 2) * .5); a.g.visible = true; });
+  if (s.kind === 'start') { tip('용이 나타났어요! ②필로티 ③계단 ④커튼월 ⑤옥상 정원을 찾아가 비춰 보세요'); sfx.found(); }
+  else if (done.has(s.st)) tip(`${STATION_NAME[s.st]}의 불은 이미 껐어요! 다른 곳을 찾아가세요`);
+  else { tip('앗! 용이 불을 뿜으려 해요… 위쪽을 지켜봐요!'); breath = { t: 0, dur: 2.2, lit: false }; sfx.breath(); }
+}
+function firePos() { const f = ST[cur].fire; return V(f[0], f[1], f[2]); }
+function damage(d) {
+  if (!fire) return; fire.hp -= d;
+  if (fire.hp <= 0) {
+    const p = fire.p; fire = null; fireLight.intensity = 0;
+    for (let i = 0; i < 60; i++) steamP.spawn(p.clone().add(V(rnd(.8), rnd(.4), rnd(.4))), V(rnd(.8), 1.5 + Math.random() * 1.5, rnd(.5)), 1.4 + Math.random(), 1, 3);
+    done.add(ST[cur].st); store.set('gnfire-done', [...done]); updChips(); sfx.out();
+    animals.forEach(a => a.happy = 1.4);
+    floatAt('치익~ 꺼졌다!', p);
+    const left = FIRE_STATIONS.filter(n => !done.has(n));
+    if (!left.length) setTimeout(win, 1200);
+    else tip(`잘했어요! 남은 표식: ${left.map(n => '①②③④⑤'[n - 1]).join(' ')}`);
+  }
+}
+function win() {
+  if (won) return; won = true; sfx.win();
+  let code = store.get('gnfire-code', null);
+  if (!code) { code = { c: String(Math.floor(1000 + Math.random() * 9000)), t: Date.now() }; store.set('gnfire-code', code); }
+  $('code').textContent = '강릉-' + code.c;
+  const d = new Date(code.t); $('when').textContent = `완료 시각 ${d.getMonth() + 1}월 ${d.getDate()}일 ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+  $('win').classList.remove('hidden'); tip('🚒 안전체험관으로 가서 선물을 받으세요!');
+}
+$('reset').onclick = () => { done = new Set(); store.set('gnfire-done', []); store.set('gnfire-code', null); won = false; updChips(); $('win').classList.add('hidden'); tip('표식을 비춰 다시 시작해요'); };
+function floatAt(t, p) {
+  const s = stage.localToWorld(p.clone()).project(camera);
+  const el = document.createElement('div'); el.className = 'float'; el.textContent = t;
+  el.style.left = (s.x * .5 + .5) * innerWidth + 'px'; el.style.top = (-s.y * .5 + .5) * innerHeight + 'px';
+  document.body.appendChild(el); setTimeout(() => el.remove(), 1100);
+}
+
+// ================= 자이로 (표식이 화면 밖으로 나가도 위치 유지) =================
+const gyro = { a: 0, b: 0, g: 0, ok: false };
+addEventListener('deviceorientation', e => { if (e.alpha == null) return; gyro.a = e.alpha; gyro.b = e.beta; gyro.g = e.gamma; gyro.ok = true; });
+const D = THREE.MathUtils.DEG2RAD, eul = new THREE.Euler(), q1 = new THREE.Quaternion(-Math.sqrt(.5), 0, 0, Math.sqrt(.5)), qz = new THREE.Quaternion(), zee = V(0, 0, 1);
+function devQ(out) {
+  const orient = (screen.orientation?.angle ?? window.orientation ?? 0) * D;
+  eul.set(gyro.b * D, gyro.a * D, -gyro.g * D, 'YXZ'); out.setFromEuler(eul); out.multiply(q1); out.multiply(qz.setFromAxisAngle(zee, -orient)); return out;
+}
+const lock = { m: new THREE.Matrix4(), q: new THREE.Quaternion(), has: false };
+const qNow = new THREE.Quaternion(), mTmp = new THREE.Matrix4(), mScale = new THREE.Matrix4();
+let visibleTarget = -1, lastSeen = 0;
+
+// ================= MindAR =================
+let controller, postM = [];
+function anchorFound(idx, worldMatrix) {
+  const m = new THREE.Matrix4(); m.elements = [...worldMatrix]; m.multiply(postM[idx]);
+  const s = ST[idx]; mScale.makeScale(1 / s.w, 1 / s.w, 1 / s.w); m.multiply(mScale); // 내부 단위 = m
+  lock.m.copy(m); if (gyro.ok) devQ(lock.q); lock.has = true;
+  visibleTarget = idx; lastSeen = performance.now();
+  if (cur !== idx && !(cur != null && ST[cur].st === ST[idx].st && (fire || breath))) setupStation(idx); else if (cur !== idx) cur = idx;
+  if (!running) running = true;
+}
+function resizeAR() {
+  renderer.setSize(innerWidth, innerHeight);
+  if (!controller) { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); return; }
+  video.setAttribute('width', video.videoWidth); video.setAttribute('height', video.videoHeight);
+  const vr = video.videoWidth / video.videoHeight, cr = innerWidth / innerHeight;
+  let vw, vh; if (vr > cr) { vh = innerHeight; vw = vh * vr; } else { vw = innerWidth; vh = vw / vr; }
+  video.style.width = vw + 'px'; video.style.height = vh + 'px';
+  video.style.left = -(vw - innerWidth) / 2 + 'px'; video.style.top = -(vh - innerHeight) / 2 + 'px';
+  const proj = controller.getProjectionMatrix();
+  const fovAdjust = innerHeight / vh;
+  camera.fov = 2 * Math.atan(1 / proj[5] * fovAdjust) * 180 / Math.PI;
+  camera.near = proj[14] / (proj[10] - 1); camera.far = proj[14] / (proj[10] + 1);
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+}
+addEventListener('resize', () => setTimeout(resizeAR, 300));
+
+async function startAR() {
+  audio();
+  if (window.DeviceOrientationEvent && DeviceOrientationEvent.requestPermission) { try { await DeviceOrientationEvent.requestPermission(); } catch (e) { } }
+  $('go').disabled = true; $('go').textContent = '카메라 켜는 중…';
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } });
+    video.srcObject = stream;
+    await new Promise(r => video.readyState >= 1 ? r() : video.addEventListener('loadedmetadata', r, { once: true }));
+    await video.play().catch(() => { });
+    video.setAttribute('width', video.videoWidth); video.setAttribute('height', video.videoHeight);
+  } catch (e) {
+    $('go').disabled = false; $('go').textContent = '📷 카메라 켜고 시작';
+    $('note').textContent = '카메라를 켤 수 없어요. 사파리/크롬에서 카메라 권한을 허용해 주세요.'; return;
+  }
+  $('go').textContent = '표식 인식 준비 중…';
+  controller = new Controller({
+    inputWidth: video.videoWidth, inputHeight: video.videoHeight, maxTrack: 1, filterMinCF: .0005, filterBeta: 8, warmupTolerance: 3, missTolerance: 6,
+    onUpdate: d => {
+      if (d.type === 'processDone') { window.__frames = (window.__frames || 0) + 1; return; }
+      if (d.type !== 'updateMatrix') return;
+      if (d.worldMatrix) anchorFound(d.targetIndex, d.worldMatrix);
+      else if (visibleTarget === d.targetIndex) visibleTarget = -1;
+    }
+  });
+  resizeAR();
+  const mind = b64buf('targets-mind');
+  const url = mind ? URL.createObjectURL(new Blob([mind])) : 'targets.mind';
+  const { dimensions } = await controller.addImageTargets(url);
+  postM = dimensions.map(([w, h]) => new THREE.Matrix4().compose(V(w / 2, w / 2 + (h - w) / 2, 0), new THREE.Quaternion(), V(w, w, w)));
+  await controller.dummyRun(video);
+  controller.processVideo(video);
+  $('start').classList.add('hidden'); $('scan').classList.remove('hidden');
+  tip('정문 간판(또는 ① 배너)을 비춰 보세요');
+  if (location.hash === '#calib') openCalib();
+}
+$('go').onclick = startAR;
+
+// ================= 호스 (꾹 눌러 물 뿌리기) =================
+const hose = { on: false, x: 0, y: 0 };
+const rc = new THREE.Raycaster(), ndc = new THREE.Vector2(), inv = new THREE.Matrix4();
+addEventListener('pointerdown', e => { if (e.target.closest('button,select,input,textarea,.overlay')) return; audio(); hose.on = true; hose.x = e.clientX; hose.y = e.clientY; if (stage.visible) hoseSound(true); });
+addEventListener('pointermove', e => { hose.x = e.clientX; hose.y = e.clientY; });
+const hoseOff = () => { hose.on = false; aimRing.visible = false; hoseSound(false); };
+addEventListener('pointerup', hoseOff); addEventListener('pointercancel', hoseOff);
+let sprayAcc = 0;
+function hoseUpdate(dt) {
+  if (!hose.on || !stage.visible || cur == null) { aimRing.visible = false; return; }
+  ndc.set(hose.x / innerWidth * 2 - 1, -(hose.y / innerHeight) * 2 + 1); rc.setFromCamera(ndc, camera);
+  inv.copy(stage.matrixWorld).invert(); const r = rc.ray.clone().applyMatrix4(inv); r.direction.normalize();
+  const target = fire ? fire.p : (ST[cur].fire ? firePos() : V(0, 2, 0));
+  const tt = Math.max(1, r.direction.dot(target.clone().sub(r.origin)));
+  const aim = r.at(tt, V());
+  aimRing.visible = true; aimRing.position.copy(aim); aimRing.lookAt(r.origin); aimRing.scale.setScalar(1 + Math.sin(performance.now() / 90) * .1);
+  const from = r.origin.clone().add(V(0, -.6, 0)).addScaledVector(r.direction, 1.2);
+  sprayAcc += dt * 180;
+  while (sprayAcc > 1) { sprayAcc--;
+    const T = .5 + Math.random() * .12, to = aim.clone().add(V(rnd(.3), rnd(.3), rnd(.3)));
+    const v = to.sub(from).divideScalar(T); v.y += 4.9 * T;
+    waterP.spawn(from.clone(), v.add(V(rnd(.3), rnd(.3), rnd(.3))), T + .15, .14, .3); }
+  if (fire && aim.distanceTo(fire.p) < ST[cur].fireW * .75) {
+    if (Math.random() < .6) steamP.spawn(fire.p.clone().add(V(rnd(.6), rnd(.3), rnd(.3))), V(rnd(.5), 1.6, rnd(.4)), 1, .6, 2);
+    damage(30 * dt);
+  }
+}
+
+// ================= 보정 모드 (#calib) =================
+function openCalib() {
+  const c = $('calib'); c.classList.remove('hidden');
+  const sel = $('cSt'); sel.innerHTML = FIRE_TARGETS.map(n => `<option value="${n}">${ST[n].name}</option>`).join(''); if (cur != null && ST[cur].fire) sel.value = cur;
+  const fill = () => { const s = ST[sel.value]; $('cX').value = s.fire[0]; $('cY').value = s.fire[1]; $('cZ').value = s.fire[2]; $('cW').value = s.fireW; show(); };
+  const show = () => { ['X', 'Y', 'Z', 'W'].forEach(k => $('v' + k).textContent = (+$('c' + k).value).toFixed(1));
+    const out = {}; FIRE_TARGETS.forEach(n => out[n] = { fire: ST[n].fire, fireW: ST[n].fireW }); $('cOut').value = JSON.stringify(out); };
+  const apply = () => { const s = ST[sel.value]; s.fire = [+$('cX').value, +$('cY').value, +$('cZ').value]; s.fireW = +$('cW').value;
+    const sv = {}; FIRE_TARGETS.forEach(n => sv[n] = { fire: ST[n].fire, fireW: ST[n].fireW }); store.set('gnfire-calib', sv);
+    if (fire && cur == sel.value) fire.p = firePos(); show(); };
+  sel.onchange = fill; ['cX', 'cY', 'cZ', 'cW'].forEach(k => $(k).oninput = apply); fill();
+  // 보정 중에는 불이 꺼지지 않도록
+  window.__calib = true;
+}
+
+// ================= 루프 =================
+const clock = new THREE.Clock(), tmpQ = new THREE.Quaternion();
+Promise.all(files.map(loadModel)).then(([dS, pup, bun, pen]) => {
+  dS.traverse(o => { if (o.isMesh) o.material.onBeforeCompile = sh => {
+    sh.uniforms.uTime = uTime;
+    sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+      float ax = abs(transformed.x);
+      float w = smoothstep(0.09, 0.5, ax) * smoothstep(0.17, 0.27, transformed.y) * smoothstep(-0.2, -0.08, transformed.z);
+      float flap = sin(uTime * 7.0) * 0.55 * w;
+      transformed.y += (ax - 0.09) * sin(flap) * 1.6;
+      transformed.x *= 1.0 - (1.0 - cos(flap)) * w * 0.6;`); }; });
+  dragonModel = dS; dragonModel.scale.setScalar(4); dragonModel.position.y = -1;
+  dragon = new THREE.Group(); dragon.add(dragonModel); stage.add(dragon);
+  [[pup, '강아지'], [bun, '토끼'], [pen, '펭귄']].forEach(([m, name]) => { const g = normalize(m, .6); stage.add(g); animals.push({ g, name, hop: Math.random() * 6, happy: 0, spray: 0 }); });
+  loaded++; pct();
+  $('loading').classList.add('hidden');
+  if (window.top !== window.self) { $('note').textContent = '이 화면은 미리보기라 카메라를 쓸 수 없어요. 휴대폰에서 분원 주소(QR)로 열어 주세요.'; return; }
+  if (!navigator.mediaDevices?.getUserMedia) { $('note').textContent = '이 기기에서는 카메라를 쓸 수 없어요.'; return; }
+  $('go').classList.remove('hidden');
+}).catch(e => { $('loading').textContent = '불러오기에 실패했어요. 새로고침해 주세요.'; console.error(e); });
+
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime; uTime.value = t;
+  // 무대 위치: 표식이 보이면 그대로, 안 보이면 자이로로 붙잡아 두기
+  if (lock.has) {
+    if (visibleTarget >= 0 || !gyro.ok) stage.matrix.copy(lock.m);
+    else { devQ(qNow); tmpQ.copy(qNow).invert().multiply(lock.q); mTmp.makeRotationFromQuaternion(tmpQ); stage.matrix.multiplyMatrices(mTmp, lock.m); }
+    stage.matrixWorldNeedsUpdate = true; stage.visible = true;
+  }
+  $('scan').classList.toggle('hidden', !controller || lock.has);
+  const k = V().setFromMatrixScale(stage.matrixWorld).x;
+  for (const p of allP) p.mat.uniforms.uScale.value = innerHeight * renderer.getPixelRatio() * .9 * k;
+
+  if (dragon && cur != null) {
+    const s = ST[cur], center = s.fire ? firePos().add(V(0, 2.5, 0)) : V(0, s.kind === 'start' && cur === 0 ? 0 : 3.5, 1);
+    const R = s.kind === 'start' ? (cur === 0 ? 3.5 : 3) : 4.5;
+    const speed = breath ? .15 : .35; flightA += speed * dt;
+    const path = a => center.clone().add(V(R * Math.cos(a), .8 * Math.sin(2 * a), R * .6 * Math.sin(a) + 1.5));
+    const p = path(flightA), n = path(flightA + .05);
+    dragon.position.copy(p); dragon.lookAt(n);
+    if (breath && s.fire) { dragon.lookAt(firePos()); dragon.rotateX(.2); }
+    dragonModel.position.y = -1 + Math.sin(t * 7) * .1;
+    if (breath) {
+      breath.t += dt;
+      const mouth = dragonModel.localToWorld(V(0, .35, .36)); stage.worldToLocal(mouth);
+      const fp = firePos();
+      if (breath.t > .6 && breath.t < breath.dur) for (let i = 0; i < 14; i++) {
+        const tgt = fp.clone().add(V(rnd(s.fireW * .3), rnd(.4), rnd(.3))); const dir = tgt.sub(mouth); const dist = dir.length(); dir.normalize(); const sp = 12 + Math.random() * 3;
+        fireP.spawn(mouth.clone(), dir.multiplyScalar(sp).add(V(rnd(1), rnd(1), rnd(1))), dist / sp * (.85 + Math.random() * .3), .25, 1.4);
+      }
+      if (!breath.lit && breath.t > 1.4) { breath.lit = true; fire = { p: fp, hp: 100, grow: 0, acc: 0, sacc: 0 }; tip('불이 났어요! 화면을 꾹 눌러 물을 뿌려요 💧'); }
+      if (breath.t > breath.dur + .4) breath = null;
+    }
+  }
+  if (fire) {
+    const s = ST[cur]; if (window.__calib) fire.hp = Math.max(fire.hp, 60);
+    fire.grow = Math.min(1, fire.grow + dt * 1.2); const kk = fire.grow * (.35 + .65 * fire.hp / 100), W = s.fireW;
+    fireLight.position.copy(fire.p).add(V(0, .5, .5)); fireLight.intensity = (3 + Math.sin(t * 23) * .6 + Math.sin(t * 9) * .4) * kk;
+    fire.acc += dt * 150 * kk; while (fire.acc > 1) { fire.acc--;
+      fireP.spawn(fire.p.clone().add(V(rnd(W * .45 * kk + .1), rnd(.3), rnd(.25))), V(rnd(.35), 1.4 + Math.random() * 1.6, rnd(.3)), .6 + Math.random() * .5, (W * .75) * kk + .25, .2); }
+    fire.sacc += dt * 9 * kk; while (fire.sacc > 1) { fire.sacc--; smokeP.spawn(fire.p.clone().add(V(rnd(W * .3), W * .4 * kk, 0)), V(rnd(.3) + .2, 1 + Math.random() * .6, rnd(.3)), 2.8, W * .4, W * 1.1); }
+  } else fireLight.intensity = 0;
+  for (const a of animals) {
+    if (!a.g.visible) continue;
+    a.hop += dt * (fire ? 9 : 4); let y = Math.abs(Math.sin(a.hop)) * (fire ? .12 : .03);
+    if (a.happy > 0) { a.happy -= dt; y = Math.abs(Math.sin(a.happy * 9)) * .35; }
+    const base = a.g.children[0]; base.userData.y0 ??= base.position.y; base.position.y = base.userData.y0 + y;
+    const look = fire ? fire.p.clone() : stage.worldToLocal(camera.getWorldPosition(V())); look.y = a.g.position.y;
+    a.g.quaternion.slerp(tmpQ.setFromUnitVectors(V(0, 0, 1), look.sub(a.g.position).normalize()), .1);
+    if (fire && running) {
+      a.spray += dt; if (!window.__calib) damage(2.5 * dt);
+      if (a.spray > .05) { a.spray = 0; const from = a.g.position.clone().add(V(0, .45, 0)), tgt = fire.p.clone().add(V(rnd(.5), rnd(.3), 0));
+        const T = 1.1, v = tgt.sub(from).divideScalar(T); v.y += 4.9 * T; waterP.spawn(from, v, T + .1, .08, .2); }
+    }
+  }
+  hoseUpdate(dt);
+  for (const p of allP) p.update(dt);
+  renderer.render(scene, camera);
+});
+</script>
+</body>
+</html>
