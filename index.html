@@ -8,7 +8,8 @@
 <style>
   :root{--ink:#1d2433;--paper:#fffaf2;--fire:#ff6a2b;--water:#2f8fe6}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:'Noto Sans KR',sans-serif;color:var(--ink);touch-action:none;-webkit-user-select:none;user-select:none}
+  html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:'Noto Sans KR',sans-serif;color:var(--ink);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  video,canvas{-webkit-touch-callout:none;pointer-events:none}
   #cam{position:fixed;z-index:0;object-fit:cover}
   canvas{position:fixed;inset:0;z-index:1;display:block}
   .hud{position:fixed;top:max(10px,env(safe-area-inset-top));left:10px;right:10px;display:flex;gap:8px;justify-content:space-between;align-items:flex-start;z-index:5;pointer-events:none}
@@ -139,7 +140,7 @@ const DEFAULT_ST = {
 const VILLAINS = {
   dragon:  { file: 'dragon',    fly: true,  mouth: [0, .35, .36], flap: true,  name: '용',       verb: '불을 뿜어요' },
   golem:   { file: 'lavagolem', fly: false, mouth: [0, .62, .25], flap: false, name: '용암 골렘', verb: '용암을 던져요' },
-  phoenix: { file: 'phoenix',   fly: true,  mouth: [0, .8, .15],  flap: true,  name: '불새',     verb: '불씨를 떨어뜨려요' },
+  phoenix: { file: 'phoenix',   fly: true,  mouth: [0, .8, .15],  flap: false,  name: '불새',     verb: '불씨를 떨어뜨려요' },
   boss:    { file: 'spaceboss', fly: true,  mouth: [-.25, .85, .2], flap: false, name: '우주 보스', verb: '불꽃을 쏴요' },
   mummy:   { file: 'mummy',     fly: false, mouth: [0, .8, .3],   flap: false, name: '미라',     verb: '불씨를 던져요' },
 };
@@ -175,8 +176,10 @@ const $ = id => document.getElementById(id);
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const rnd = (a = 1) => (Math.random() * 2 - 1) * a;
 const video = $('cam');
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(1.5, devicePixelRatio));
+renderer.domElement.addEventListener('webglcontextlost', e => { e.preventDefault(); tip('화면을 다시 불러와요…'); setTimeout(() => location.reload(), 800); });
+addEventListener('contextmenu', e => e.preventDefault());
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.setClearColor(0, 0);
@@ -197,8 +200,8 @@ updChips();
 const stage = new THREE.Group(); stage.matrixAutoUpdate = false; stage.visible = false; scene.add(stage);
 
 // ================= 파티클 =================
-const VS = `attribute float size; attribute float alpha; attribute vec3 color; varying float vA; varying vec3 vC; uniform float uScale;
-void main(){ vA=alpha; vC=color; vec4 mv=modelViewMatrix*vec4(position,1.); gl_Position=projectionMatrix*mv; gl_PointSize=size*uScale/-mv.z; }`;
+const VS = `attribute float size; attribute float alpha; attribute vec3 color; varying float vA; varying vec3 vC; uniform float uScale; uniform float uMax;
+void main(){ vA=alpha; vC=color; vec4 mv=modelViewMatrix*vec4(position,1.); gl_Position=projectionMatrix*mv; float z=-mv.z; if(z<.35){vA=0.;gl_PointSize=0.;return;} gl_PointSize=min(size*uScale/z, uMax); }`;
 const FS = `varying float vA; varying vec3 vC; void main(){ float d=length(gl_PointCoord-.5); if(d>.5) discard; gl_FragColor=vec4(vC, smoothstep(.5,0.,d)*vA); }`;
 class Particles {
   constructor(n, blending, kind) {
@@ -208,7 +211,7 @@ class Particles {
     const g = this.g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(this.pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(this.col, 3));
     g.setAttribute('size', new THREE.BufferAttribute(this.size, 1)); g.setAttribute('alpha', new THREE.BufferAttribute(this.alpha, 1));
-    this.mat = new THREE.ShaderMaterial({ vertexShader: VS, fragmentShader: FS, transparent: true, depthWrite: false, depthTest: false, blending, uniforms: { uScale: { value: 1 } } });
+    this.mat = new THREE.ShaderMaterial({ vertexShader: VS, fragmentShader: FS, transparent: true, depthWrite: false, depthTest: false, blending, uniforms: { uScale: { value: 1 }, uMax: { value: 140 } } });
     const p = new THREE.Points(g, this.mat); p.frustumCulled = false; p.renderOrder = 5; stage.add(p);
   }
   spawn(p, v, life, s0, s1) { const i = this.i; this.i = (i + 1) % this.n; this.pos.set([p.x, p.y, p.z], i * 3); this.vel.set([v.x, v.y, v.z], i * 3); this.life[i] = this.max[i] = life; this.s0[i] = s0; this.s1[i] = s1; }
@@ -281,7 +284,7 @@ const files = ['dragon', 'puppy', 'bunny', 'penguin', 'lavagolem', 'phoenix', 's
 let loaded = 0; const pct = () => $('pct').textContent = Math.round(loaded / (files.length + 1) * 100);
 const loadModel = n => new Promise((res, rej) => {
   const buf = b64buf('m-' + n);
-  const ok = g => { loaded++; pct(); res(g.scene); };
+  const ok = g => { loaded++; pct(); g.scene.userData.anims = g.animations || []; res(g.scene); };
   if (buf) setTimeout(() => loader.parse(buf, '', ok, rej), 20); else loader.load(n + '.glb', ok, undefined, rej);
 });
 function normalize(obj, size) {
@@ -289,7 +292,7 @@ function normalize(obj, size) {
   obj.scale.setScalar(k); obj.position.set(-c.x * k, -b.min.y * k, -c.z * k); const w = new THREE.Group(); w.add(obj); return w;
 }
 const uTime = { value: 0 };
-let dragon, dragonModel, vil = VILLAINS.dragon; const villainModels = {}; const animals = [];
+let mixer = null, mixAct = {}, dragon, dragonModel, vil = VILLAINS.dragon; const villainModels = {}; const animals = [];
 const heroModels = {}, heroGroups = {};
 // 고른 친구가 대장(크게, 가운데), 나머지 둘은 기본 친구
 function buildTeam() {
@@ -315,6 +318,9 @@ function setupStation(i) {
   const sc = (s.animal || .8) / .8; animals.forEach((a, k) => { const x = [0, -1.3, 1.3][k] * sc; a.g.position.set(x, s.ground, (s.w > 1 ? 1.4 : 1.1) * sc + (a.lead ? .4 * sc : 0)); a.g.visible = true; });
   vil = VILLAINS[s.villain || 'dragon'];
   if (dragon) { dragon.clear(); dragonModel = villainModels[s.villain || 'dragon']; dragon.add(dragonModel);
+    mixer = null; mixAct = {}; const anims = dragonModel.userData.anims || [];
+    if (anims.length) { mixer = new THREE.AnimationMixer(dragonModel); for (const c of anims) mixAct[c.name] = mixer.clipAction(c);
+      const base = mixAct.Walk || mixAct.Fly; if (base) base.play(); }
     const ds = s.dragon || (vil.fly ? 6 : 1.6); dragonModel.scale.setScalar(ds); dragonModel.userData.ds = ds; }
   if (s.kind === 'start') { tip(`${vil.name}이(가) 나타났어요! 앗, ${vil.verb}… 연습으로 꺼 볼까요?`); sfx.found(); breath = { t: -1.2, dur: 2.2, lit: false }; setTimeout(sfx.breath, 1200); }
   else if (done.has(s.st)) { tip(`${STATION_NAME[s.st] || '여기'}는 이미 성공! 그래도 ${vil.name}이(가) 또 왔어요 🔥`); breath = { t: -0.6, dur: 2.2, lit: false }; setTimeout(sfx.breath, 600); }
@@ -325,7 +331,7 @@ function damage(d) {
   if (!fire) return; fire.hp -= d;
   if (fire.hp <= 0) {
     const p = fire.p; fire = null; fireLight.intensity = 0;
-    for (let i = 0; i < 60; i++) steamP.spawn(p.clone().add(V(rnd(.8), rnd(.4), rnd(.4))), V(rnd(.8), 1.5 + Math.random() * 1.5, rnd(.5)), 1.4 + Math.random(), 1, 3);
+    for (let i = 0; i < 30; i++) steamP.spawn(p.clone().add(V(rnd(.8), rnd(.4), rnd(.4))), V(rnd(.8), 1.5 + Math.random() * 1.5, rnd(.5)), 1.2 + Math.random() * .6, .6, 1.8);
     rebreath = 6;
     if (ST[cur].kind === 'start') { sfx.out(); animals.forEach(a => a.happy = 1.4); floatAt('연습 성공!', p); tip('잘했어요! 용이 또 불을 뿜으려 해요… 다른 곳(②~⑤)으로 가도 좋아요'); return; }
     done.add(ST[cur].st); store.set('gnfire-done', [...done]); updChips(); sfx.out();
@@ -431,6 +437,9 @@ async function startAR() {
   postM = dimensions.map(([w, h]) => new THREE.Matrix4().compose(V(w / 2, w / 2 + (h - w) / 2, 0), new THREE.Quaternion(), V(w, w, w)));
   await controller.dummyRun(video);
   controller.processVideo(video);
+  // 감시: 카메라가 멈추거나 인식이 멈추면 다시 깨움
+  setInterval(() => { if (!document.hidden && video.paused) video.play().catch(() => { }); }, 1000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) video.play().catch(() => { }); });
   $('start').classList.add('hidden'); $('scan').classList.remove('hidden');
   tip('정문 간판(또는 ① 배너)을 비춰 보세요');
   if (location.hash === '#calib') openCalib();
@@ -547,6 +556,7 @@ Promise.all(files.map(loadModel)).then(([dS, pup, bun, pen, gol, pho, bos, mum, 
 
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime; uTime.value = t;
+  if (mixer) mixer.update(dt);
   // 무대 위치: 표식이 보이면 그대로, 안 보이면 자이로로 붙잡아 두기
   if (!lock.has) stage.visible = false;
   if (lock.has) {
@@ -562,7 +572,7 @@ renderer.setAnimationLoop(() => {
   }
   $('scan').classList.toggle('hidden', !controller || lock.has);
   const k = V().setFromMatrixScale(stage.matrixWorld).x;
-  for (const p of allP) p.mat.uniforms.uScale.value = innerHeight * renderer.getPixelRatio() * .9 * k;
+  for (const p of allP) { p.mat.uniforms.uScale.value = innerHeight * renderer.getPixelRatio() * .9 * k; p.mat.uniforms.uMax.value = 110 * renderer.getPixelRatio(); }
 
   if (dragon && cur != null) {
     const s = ST[cur], ds = dragonModel.userData.ds;
@@ -586,10 +596,11 @@ renderer.setAnimationLoop(() => {
       if (breath) { const f = firePos(); f.y = p.y; dragon.lookAt(f.x === p.x && f.z === p.z ? stage.worldToLocal(camera.getWorldPosition(V())).setY(p.y) : f); }
       else dragon.lookAt(n);
       const step = Math.abs(Math.sin(t * (s.villain === 'golem' ? 3 : 4)));
-      dragonModel.position.y = step * .06 * ds; dragonModel.rotation.z = Math.sin(t * (s.villain === 'golem' ? 3 : 4)) * (s.villain === 'mummy' ? .12 : .06);
+      if (!mixer) { dragonModel.position.y = step * .06 * ds; dragonModel.rotation.z = Math.sin(t * (s.villain === 'golem' ? 3 : 4)) * (s.villain === 'mummy' ? .12 : .06); }
       if (s.villain === 'golem' && step < .05 && Math.random() < .3) for (let i = 0; i < 6; i++) smokeP.spawn(p.clone().add(V(rnd(.3 * ds), .05, rnd(.3 * ds))), V(rnd(.3), .3, rnd(.3)), 1, .2 * ds, .5 * ds);
     }
     if (breath) {
+      if (!breath.anim && mixAct.Attack && breath.t > .1) { breath.anim = true; const at = mixAct.Attack; at.reset(); at.setLoop(THREE.LoopOnce); at.clampWhenFinished = false; at.fadeIn(.15).play(); setTimeout(() => at.fadeOut(.3), 1100); }
       breath.t += dt;
       const mouth = dragonModel.localToWorld(V(...vil.mouth)); stage.worldToLocal(mouth);
       const fp = firePos();
