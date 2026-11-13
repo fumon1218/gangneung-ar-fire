@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>3D 불끄기 훈련장 — 교실</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#f6ead8;font-family:'Noto Sans KR',sans-serif;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  *{touch-action:none}
+  canvas{display:block;touch-action:none}
+  .hidden{display:none!important}
+  #top{position:fixed;top:max(8px,env(safe-area-inset-top));left:8px;right:8px;display:flex;gap:6px;align-items:flex-start;z-index:5;pointer-events:none}
+  #steps{display:flex;gap:5px;background:rgba(255,255,255,.88);border-radius:16px;padding:6px 8px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+  #steps .s{font-size:12px;font-weight:900;padding:4px 6px;border-radius:10px;background:#eee;color:#888;white-space:nowrap}
+  #steps .s.on{background:#ff6a2b;color:#fff;animation:pul .8s infinite alternate}
+  #steps .s.ok{background:#2fbf71;color:#fff}
+  @keyframes pul{to{transform:scale(1.08)}}
+  .btn{white-space:nowrap;pointer-events:auto;border:none;border-radius:16px;font-family:'Jua',sans-serif;font-size:17px;padding:8px 12px;background:#fff;color:#333;box-shadow:0 3px 0 rgba(0,0,0,.18)}
+  #view{margin-left:auto}
+  #tip{position:fixed;left:50%;top:calc(max(8px,env(safe-area-inset-top)) + 52px);transform:translateX(-50%);background:rgba(29,36,51,.86);color:#fff;border-radius:14px;padding:8px 14px;font-size:15px;font-weight:700;max-width:92vw;width:max-content;text-align:center;z-index:5;pointer-events:none}
+  #joy{position:fixed;left:max(18px,env(safe-area-inset-left));bottom:max(22px,env(safe-area-inset-bottom));width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.35);border:3px solid rgba(255,255,255,.8);z-index:6;touch-action:none}
+  #knob{position:absolute;left:37px;top:37px;width:56px;height:56px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.3);pointer-events:none}
+  #spray{position:fixed;right:max(18px,env(safe-area-inset-right));bottom:max(22px,env(safe-area-inset-bottom));width:118px;height:118px;border-radius:50%;border:5px solid #fff;background:radial-gradient(circle at 35% 30%,#ff7b6b,#d7191f);color:#fff;font-family:'Jua',sans-serif;font-size:19px;line-height:1.1;z-index:6;box-shadow:0 5px 0 #9c0f14;touch-action:none}
+  #spray.on{transform:translateY(4px) scale(.96);box-shadow:0 1px 0 #9c0f14;background:radial-gradient(circle at 35% 30%,#ffb1a8,#ff3b3b)}
+  #pinBtn{position:fixed;right:max(22px,env(safe-area-inset-right));bottom:calc(max(22px,env(safe-area-inset-bottom)) + 132px);width:76px;height:76px;border-radius:50%;border:4px solid #fff;background:#ffcf33;font-family:'Jua',sans-serif;font-size:13px;line-height:1.1;z-index:6;box-shadow:0 4px 0 #c98a00;animation:pul .7s infinite alternate}
+  #pinBtn.used{opacity:.35;animation:none}
+  #pinBtn.shake{animation:shake .4s}
+  @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  #yell{position:fixed;left:50%;bottom:max(30px,env(safe-area-inset-bottom));transform:translateX(-50%);border:4px solid #fff;border-radius:22px;background:#ff3b2f;color:#fff;font-family:'Jua',sans-serif;font-size:24px;padding:12px 22px;z-index:6;box-shadow:0 5px 0 #a81d14;animation:pul .5s infinite alternate}
+  #gaugeBox{position:fixed;right:max(18px,env(safe-area-inset-right));bottom:calc(max(22px,env(safe-area-inset-bottom)) + 220px);width:118px;height:14px;border-radius:8px;background:rgba(255,255,255,.7);overflow:hidden;z-index:6}
+  #gauge{height:100%;background:linear-gradient(90deg,#ff5a3c,#ffd35a);width:100%}
+  #arrow{position:fixed;font-size:40px;z-index:4;pointer-events:none;display:none;filter:drop-shadow(0 0 6px #ff5a00)}
+  .float{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);font-family:'Jua',sans-serif;font-size:56px;color:#ff3b2f;text-shadow:0 3px 0 #fff,0 0 12px #fff;z-index:9;pointer-events:none;animation:fl 1.2s ease-out forwards}
+  @keyframes fl{from{transform:translate(-50%,-50%) scale(.5)}30%{transform:translate(-50%,-50%) scale(1.15)}to{opacity:0;transform:translate(-50%,-90%) scale(1)}}
+  .ov{position:fixed;inset:0;z-index:20;background:rgba(20,30,50,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+  .card{background:#fff8e6;border-radius:24px;max-width:420px;width:100%;padding:22px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  .card h1{font-family:'Jua',sans-serif;font-size:28px;margin:4px 0 8px;color:#7a3a0c}
+  .card ul{text-align:left;font-size:15px;line-height:1.7;padding-left:20px;margin:8px 0}
+  .big{font-family:'Jua',sans-serif;font-size:22px;border:none;border-radius:16px;padding:12px 26px;margin-top:10px;color:#fff;background:#ff6a2b;box-shadow:0 4px 0 #c94a14}
+  .gray{background:#8a8f9c;box-shadow:0 4px 0 #5d626e}
+  a.big{display:inline-block;text-decoration:none}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+</head><body>
+<div id="top"><div id="steps"><span class="s">📣 외치기</span><span class="s">① 핀</span><span class="s">② 겨누기</span><span class="s">③④ 쓸기</span></div><button class="btn" id="view">👁 1인칭</button><a class="btn" href="index.html" style="text-decoration:none">🏠</a></div>
+<div id="tip">교실을 불러오는 중…</div>
+<div id="joy"><div id="knob"></div></div>
+<div id="gaugeBox"><div id="gauge"></div></div>
+<button id="pinBtn">① 안전핀<br>뽑기</button>
+<button id="spray">③ 꾹<br>누르기</button>
+<button id="yell" class="hidden">📣 불이야!</button>
+<div id="arrow">➡️</div>
+<div class="ov" id="intro"><div class="card">
+  <h1>🏫 3D 불끄기 훈련장: 교실</h1>
+  <ul>
+    <li>왼쪽 아래 <b>동그라미</b>로 걸어 다녀요</li>
+    <li>불을 찾으면 <b>📣 불이야!</b> 하고 외쳐요</li>
+    <li><b>① 안전핀</b>을 뽑고, 불에 <b>가까이</b> 가요</li>
+    <li><b>③ 꾹 누르기</b> 버튼을 누른 채 화면을 <b>좌우로 끌어</b> 쓸어요</li>
+    <li>불이 너무 커지면 <b>초록 비상구</b>로 대피!</li>
+  </ul>
+  <p style="font-size:13px;color:#7a6a5a;margin:4px 0">👁 버튼으로 1인칭(내 눈) ↔ 3인칭(위에서 보기)을 바꿀 수 있어요</p>
+  <div id="loading">준비 중… <span id="pct">0</span>%</div>
+  <button class="big hidden" id="go">🧯 훈련 시작!</button>
+</div></div>
+<div class="ov hidden" id="done"><div class="card">
+  <h1>🎉 훈련 완료!</h1><p style="font-size:34px;margin:6px 0" id="stars"></p>
+  <p>교실의 불을 모두 해결했어요.<br>안전체험관에서 진짜 소화기로 한 번 더 연습해요!</p>
+  <button class="big" id="again">다시 하기</button> <a class="big gray" href="index.html">🏠 본부로</a>
+</div></div>
+<script>// iOS 사파리 확대(두 손가락·두 번 탭) 막기
+(() => { const no = e => e.preventDefault(), o = { passive: false };
+  document.addEventListener('gesturestart', no, o); document.addEventListener('gesturechange', no, o); document.addEventListener('gestureend', no, o);
+  document.addEventListener('touchmove', e => { if (e.touches.length > 1 || (e.scale && e.scale !== 1)) e.preventDefault(); }, o);
+  let last = 0; document.addEventListener('touchend', e => { const n = Date.now(); if (n - last < 320 && !e.target.closest('input,textarea,select')) e.preventDefault(); last = n; }, o);
+  document.addEventListener('dblclick', no, o); })();
+</script>
+<script type="module">
+/*MAIN*/
+</script>
+</body></html>

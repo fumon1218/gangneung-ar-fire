@@ -1,0 +1,9 @@
+<!DOCTYPE html><html><body><script type="module">
+import { Compiler } from '/node_modules/mind-ar/dist/mindar-image.prod.js';
+const files=['T0.jpg','T1.jpg','T2.jpg','T3.jpg','T4.jpg','T5.jpg','T6.jpg','T7.jpg','T8.jpg','T9.jpg','T10.jpg','T11.jpg','T12.jpg','T13.jpg','T14.jpg','T15.jpg','T16.jpg','T17.jpg','T18.jpg','T19.jpg','T20.jpg','T21.jpg','T22.jpg','T23.jpg','T24.jpg','T25.jpg','T26.jpg'];
+const imgs=await Promise.all(files.map(f=>new Promise(r=>{const i=new Image(); i.onload=()=>r(i); i.src='/'+f;})));
+const c=new Compiler();
+await c.compileImageTargets(imgs, p=>{window.__p=p;});
+const buf=c.exportData(); let s=''; const u=new Uint8Array(buf); for(let i=0;i<u.length;i+=32768) s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));
+window.__out=btoa(s);
+</script></body></html>
