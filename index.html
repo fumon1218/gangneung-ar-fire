@@ -416,7 +416,7 @@ Promise.all(files.map(loadModel)).then(([dS, pup, bun, pen]) => {
       transformed.x *= 1.0 - (1.0 - cos(flap)) * w * 0.6;`); }; });
   dragonModel = dS; dragonModel.scale.setScalar(4); dragonModel.position.y = -1;
   dragon = new THREE.Group(); dragon.add(dragonModel); stage.add(dragon);
-  [[pup, '강아지'], [bun, '토끼'], [pen, '펭귄']].forEach(([m, name]) => { const g = normalize(m, .6); stage.add(g); animals.push({ g, name, hop: Math.random() * 6, happy: 0, spray: 0 }); });
+  [[pup, '강아지'], [bun, '토끼'], [pen, '펭귄']].forEach(([m, name]) => { const g = normalize(m, .8); stage.add(g); animals.push({ g, name, hop: Math.random() * 6, happy: 0, spray: 0 }); });
   loaded++; pct();
   $('loading').classList.add('hidden');
   if (window.top !== window.self) { $('note').textContent = '이 화면은 미리보기라 카메라를 쓸 수 없어요. 휴대폰에서 분원 주소(QR)로 열어 주세요.'; return; }
@@ -437,7 +437,7 @@ renderer.setAnimationLoop(() => {
   for (const p of allP) p.mat.uniforms.uScale.value = innerHeight * renderer.getPixelRatio() * .9 * k;
 
   if (dragon && cur != null) {
-    const s = ST[cur], center = s.fire ? firePos().add(V(0, 2.5, 0)) : V(0, s.kind === 'start' && cur === 0 ? 0 : 3.5, 1);
+    const s = ST[cur], center = s.fire ? firePos().add(V(0, 2.5, 0)) : V(0, s.kind === 'start' && cur === 0 ? 1.8 : 3.5, 1);
     const R = s.kind === 'start' ? (cur === 0 ? 3.5 : 3) : 4.5;
     const speed = breath ? .15 : .35; flightA += speed * dt;
     const path = a => center.clone().add(V(R * Math.cos(a), .8 * Math.sin(2 * a), R * .6 * Math.sin(a) + 1.5));
