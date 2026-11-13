@@ -18,6 +18,32 @@
   .chip{display:inline-flex;width:30px;height:30px;border-radius:50%;align-items:center;justify-content:center;background:#e6e1d6;color:#8a8475;font-size:17px}
   .chip.done{background:#2aa86b;color:#fff}
 
+
+  #picker{z-index:25}
+  /* ---- 로비 ---- */
+  #lobby{position:fixed;inset:0;z-index:12;background:#2a1c14 url(lobby.webp) center top/cover no-repeat;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:16px 16px max(18px,env(safe-area-inset-bottom))}
+  #lobby .lt{position:absolute;top:max(14px,env(safe-area-inset-top));left:0;right:0;text-align:center;font-family:'Jua',sans-serif;font-size:30px;color:#fff;text-shadow:0 3px 0 #b8331a,0 0 12px rgba(0,0,0,.5)}
+  #lobby .panel{width:100%;max-width:440px;background:rgba(255,248,230,.95);border-radius:24px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.35);text-align:center}
+  #lobby .row{display:flex;gap:10px;justify-content:center}
+  #lobby .big{margin-top:10px;min-width:0;flex:1;font-size:20px;white-space:nowrap;padding:12px 10px}
+  #lobby .big[disabled]{opacity:.45;filter:grayscale(.6)}
+  .badge{display:inline-block;background:#ffcf33;color:#6a4200;border-radius:12px;padding:3px 10px;font-weight:800;font-size:14px;margin:4px 2px}
+  /* ---- 소화기 연습 ---- */
+  #ext{position:fixed;inset:0;z-index:20;background:linear-gradient(#ffe7c2,#ffd0a0);display:flex;flex-direction:column;align-items:center;padding:max(12px,env(safe-area-inset-top)) 12px max(14px,env(safe-area-inset-bottom));touch-action:none}
+  #ext .big{font-size:19px;white-space:nowrap;min-width:0;padding:12px 16px}
+  #ext .steps{display:flex;gap:6px;margin:4px 0 6px}
+  #ext .st{width:46px;height:46px;border-radius:50%;background:#fff;border:3px solid #e8b27a;display:flex;align-items:center;justify-content:center;font-family:'Jua',sans-serif;font-size:22px;color:#c96a1a}
+  #ext .st.on{background:#ff6a2b;color:#fff;border-color:#fff;box-shadow:0 0 0 3px #ff6a2b;transform:scale(1.12)}
+  #ext .st.ok{background:#2fbf71;color:#fff;border-color:#fff}
+  #ext h2{font-family:'Jua',sans-serif;font-size:26px;margin:4px 0 0;color:#7a3a0c;text-align:center}
+  #ext .sub{font-size:15px;color:#7a5a3c;margin:2px 0 6px;text-align:center;min-height:20px}
+  #ext .stage{position:relative;width:min(94vw,440px);flex:1;max-height:62vh}
+  #ext svg,#ext canvas{position:absolute;inset:0;width:100%;height:100%}
+  #ext canvas{pointer-events:none}
+  #ext .hand{position:absolute;font-size:40px;pointer-events:none;transition:left .3s,top .3s;animation:tap 1s infinite}
+  @keyframes tap{50%{transform:translate(6px,8px) scale(.9)}}
+  .glow{animation:glow 1s infinite alternate}
+  @keyframes glow{from{filter:drop-shadow(0 0 2px #fff700)}to{filter:drop-shadow(0 0 10px #ffe600)}}
   /* ---- 미니맵 (보물지도) ---- */
   #mini{position:fixed;left:10px;top:calc(max(10px,env(safe-area-inset-top)) + 62px);width:108px;height:108px;border-radius:20px;overflow:hidden;z-index:6;
     border:4px solid #f3d38a;box-shadow:0 4px 14px rgba(0,0,0,.35),inset 0 0 0 2px #b8862e;background:#f6e3b4;pointer-events:auto;transition:transform .2s}
@@ -32,6 +58,9 @@
   .mk.fire::after{content:'🔥';font-size:1.25em;filter:drop-shadow(0 0 4px #ff6a00)}
   .mk.done{background:#2fbf71;border:2px solid #fff;color:#fff;box-shadow:0 0 0 2px #1d8a50}
   .mk.done::after{content:'✓';font-size:.8em}
+  .mk.calm{background:rgba(255,255,255,.75);border:2px dashed #9a8a6a}
+  .mk.calm::after{content:'?';color:#8a7a5a;font-size:.7em}
+  .mk.fire.alarm1{transform:translate(-50%,-50%) scale(1.25)}
   .mk.start{background:#ffcf33;border:2px solid #fff;box-shadow:0 0 0 2px #c98a00}
   .mk.start::after{content:'★';color:#fff;font-size:.8em}
   .mk.here::before{content:'';position:absolute;inset:-35%;border-radius:50%;border:3px solid #3aa0ff;animation:ping 1s infinite}
@@ -100,11 +129,51 @@
     <p style="margin-bottom:0"><b>함께 불을 끌 친구를 골라요!</b></p>
     <div class="heroes" id="heroGrid"></div>
     <div id="loading">준비 중… <span id="pct">0</span>%</div>
-    <button class="big hidden" id="go">📷 카메라 켜고 시작</button>
+    <button class="big hidden" id="go">🚒 소방대 본부로 가기</button>
     <p class="small" id="note"></p>
   </div>
 </div>
 
+
+<div id="lobby" class="hidden">
+  <div class="lt">🚒 동물 소방대 본부</div>
+  <div class="panel">
+    <p style="margin:0 0 4px">출동 전에 <b>소화기 쓰는 법</b>을 꼭 연습해요!</p>
+    <div id="badges"></div>
+    <button class="big blue" id="extBtn" style="width:100%">🧯 소화기 4단계 연습</button>
+    <p style="margin:12px 0 0"><b>어디로 출동할까요?</b></p>
+    <div class="row"><button class="big" id="goOut">🏢 실외 출동</button><button class="big" id="goIn">🏠 실내 출동</button></div>
+    <p class="small" id="lnote" style="margin:8px 0 0"></p>
+    <button class="big gray" id="lobbyHero" style="margin-top:8px">🐾 친구 바꾸기</button>
+  </div>
+</div>
+<div id="ext" class="hidden">
+  <div class="steps"><div class="st">1</div><div class="st">2</div><div class="st">3</div><div class="st">4</div></div>
+  <h2 id="exT"></h2><div class="sub" id="exS"></div>
+  <div class="stage" id="exStage">
+    <svg id="exSvg" viewBox="0 0 360 420">
+      <defs><radialGradient id="fg" cx=".5" cy=".7" r=".6"><stop offset="0" stop-color="#fff6a0"/><stop offset=".45" stop-color="#ffb12b"/><stop offset="1" stop-color="#ff4b1f"/></radialGradient>
+      <linearGradient id="body" x1="0" x2="1"><stop offset="0" stop-color="#b8141a"/><stop offset=".35" stop-color="#ff3b3b"/><stop offset=".6" stop-color="#e3171d"/><stop offset="1" stop-color="#9c0f14"/></linearGradient></defs>
+      <rect x="0" y="372" width="360" height="48" fill="#c89b6a"/><rect x="0" y="368" width="360" height="6" fill="#a87b4a"/>
+      <g id="exDoor"><rect x="4" y="200" width="44" height="170" rx="4" fill="#7a5233"/><circle cx="40" cy="290" r="4" fill="#ffd35a"/><text x="26" y="192" font-size="12" text-anchor="middle" fill="#2a7a3a" font-weight="900">비상구</text></g>
+      <g id="exFire" transform="translate(300 372)"><g id="exFireS">
+        <path d="M-46 0 C-50 -40 -20 -50 -24 -90 C-6 -70 0 -60 2 -40 C8 -70 26 -80 24 -120 C46 -90 56 -50 46 0Z" fill="url(#fg)"/>
+        <path d="M-24 0 C-26 -24 -8 -30 -10 -54 C2 -40 6 -34 8 -20 C12 -36 22 -42 20 -62 C34 -44 36 -20 26 0Z" fill="#fff6a0" opacity=".85"/></g></g>
+      <path id="exHose" d="" fill="none" stroke="#222" stroke-width="9" stroke-linecap="round"/>
+      <rect x="70" y="170" width="80" height="200" rx="26" fill="url(#body)"/>
+      <rect x="82" y="230" width="56" height="60" rx="8" fill="#fff" opacity=".92"/><text x="110" y="267" font-size="20" text-anchor="middle" fill="#d0141a" font-weight="900">소화기</text>
+      <rect x="94" y="140" width="32" height="34" rx="6" fill="#444"/>
+      <path d="M86 150 L148 146 L150 156 L88 160Z" fill="#666"/>
+      <g id="exLever"><path d="M84 132 L156 118 L158 128 L86 142Z" fill="#555"/></g>
+      <g id="exPin"><line x1="56" y1="140" x2="110" y2="140" stroke="#ddd" stroke-width="5"/><circle cx="44" cy="140" r="14" fill="none" stroke="#ffd35a" stroke-width="6"/></g>
+      <g id="exNoz"><rect x="-6" y="-26" width="12" height="34" rx="5" fill="#111"/><rect x="-4" y="-34" width="8" height="10" rx="2" fill="#333"/></g>
+      <circle id="exTarget" cx="228" cy="318" r="30" fill="rgba(46,160,255,.15)" stroke="#2e9fff" stroke-width="3" stroke-dasharray="6 5"/>
+    </svg>
+    <canvas id="exCv"></canvas>
+    <div class="hand" id="exHand">👆</div>
+  </div>
+  <div class="row" style="display:flex;gap:10px;margin-top:6px"><button class="big gray" id="exBack">↩ 로비로</button><button class="big gray" id="exSay">🔊 다시 듣기</button></div>
+</div>
 <div class="overlay hidden" id="win">
   <div class="card">
     <h1>🎉 불을 모두 껐어요!</h1>
@@ -430,9 +499,9 @@ const MAP_POS = { 1: [50, 80.6], 2: [25, 51.5], 3: [78.8, 50.6], 4: [50, 34.8], 
 let mapFire = false;
 function mkHTML(big) {
   const c = COURSES[course], here = cur != null ? ST[cur].st : -1, list = (course === 'out' ? [1] : []).concat(c.st);
-  const next = c.st.find(n => !done.has(n));
-  return list.map(n => { const [x, y] = MAP_POS[n]; const st = n === 1 ? 'start' : done.has(n) ? 'done' : 'fire';
-    const lab = big ? `<div class="lab${n === next ? ' next' : ''}" style="left:${x}%;top:${y}%">${n === 1 ? '★ 시작' : (STATION_NAME[n] || '')}${n === next ? ' ← 다음!' : ''}</div>` : '';
+  const next = dispatched ? alarmAt[course] : c.st.find(n => !done.has(n));
+  return list.map(n => { const [x, y] = MAP_POS[n]; const st = n === 1 ? 'start' : done.has(n) ? 'done' : (!dispatched || n === next) ? 'fire' : 'calm';
+    const lab = big ? `<div class="lab${n === next ? ' next' : ''}" style="left:${x}%;top:${y}%">${n === 1 ? '★ 시작' : (STATION_NAME[n] || '')}${n === next ? (dispatched ? ' ← 불났어요!' : ' ← 다음!') : ''}</div>` : '';
     return `<div class="mk ${st}${n === here ? ' here' : ''}" style="left:${x}%;top:${y}%"></div>${lab}`; }).join('');
 }
 function updMini() {
@@ -441,11 +510,122 @@ function updMini() {
   $('miniMk').innerHTML = mkHTML(false);
   if (!$('mapBig').classList.contains('hidden')) { $('bigMk').innerHTML = mkHTML(true);
     const left = COURSES[course].st.filter(n => !done.has(n)).length;
-    $('mapSum').textContent = left ? `🔥 아직 불난 곳 ${left}곳! 주황색 표시로 가 보세요` : '🎉 모든 불을 껐어요! 안전체험관에서 선물 받기'; }
-  $('mini').classList.toggle('alarm', mapFire);
+    $('mapSum').textContent = !left ? '🎉 모든 불을 껐어요! 안전체험관에서 선물 받기' : dispatched ? (alarmAt[course] != null ? `🚨 ${STATION_NAME[alarmAt[course]]}에 불! (남은 곳 ${left}곳)` : `남은 곳 ${left}곳`) : `🔥 아직 불난 곳 ${left}곳! 주황색 표시로 가 보세요`; }
+  $('mini').classList.toggle('alarm', mapFire || (dispatched && alarmAt[course] != null));
 }
 $('mini').onclick = () => { $('mapBig').classList.remove('hidden'); updMini(); audio(); chime([523, 659]); };
 $('mapClose').onclick = () => $('mapBig').classList.add('hidden');
+
+
+// ================= 로비 · 출동 =================
+let alarmAt = { out: null, in: null }, dispatched = false;
+const ALL_ST = c => COURSES[c].st;
+function pickFire(avoid) {
+  const left = ALL_ST(course).filter(n => !done.has(n));
+  if (!left.length) { alarmAt[course] = null; return null; }
+  const pool = left.length > 1 ? left.filter(n => n !== avoid) : left;
+  return alarmAt[course] = pool[Math.floor(Math.random() * pool.length)];
+}
+function siren() { for (let i = 0; i < 4; i++) { tone('sawtooth', 700, 1100, .32, .12, i * .34, 2500); tone('sawtooth', 1100, 700, .32, .1, i * .34 + .17, 2500); } }
+function announce(first) {
+  const n = alarmAt[course]; if (n == null) return;
+  siren(); try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch (e) { }
+  tip(`🚨 ${first ? '출동!' : '또 불이 났어요!'} ${STATION_NAME[n]}에 불이 났어요! 지도를 보고 가요`);
+  $('mini').classList.remove('hit'); void $('mini').offsetWidth; $('mini').classList.add('hit');
+  $('mapBig').classList.remove('hidden'); updMini();
+  clearTimeout(announce.t); announce.t = setTimeout(() => $('mapBig').classList.add('hidden'), 3500);
+}
+function openLobby() {
+  $('start').classList.add('hidden'); $('lobby').classList.remove('hidden');
+  const ok = store.get('gnfire-ext', false);
+  $('badges').innerHTML = ok ? '<span class="badge">🏅 소화기 박사</span>' : '';
+  $('goOut').disabled = $('goIn').disabled = !ok;
+  $('lnote').textContent = ok ? '출동하면 카메라가 켜져요. 지도의 🔥 장소로 가서 비춰요!' : '연습을 마치면 출동 버튼이 켜져요';
+}
+async function dispatch(c) {
+  audio(); course = c; updChips(); dispatched = true;
+  if (alarmAt[course] == null || done.has(alarmAt[course])) pickFire();
+  $('lobby').classList.add('hidden');
+  if (!controller) { await startAR(); if (!controller) { $('lobby').classList.remove('hidden'); return; } }
+  if (alarmAt[course] == null) { tip('이 코스의 불은 모두 껐어요! 🎉'); return; }
+  announce(true);
+}
+$('goOut').onclick = () => dispatch('out'); $('goIn').onclick = () => dispatch('in');
+$('lobbyHero').onclick = () => { fillGrid($('heroGrid2')); $('picker').classList.remove('hidden'); };
+$('extBtn').onclick = () => openExt();
+
+// ================= 소화기 4단계 연습 =================
+const EX = { step: 0, pin: false, aim: false, hold: 0, squeezing: false, sweeps: 0, lastDir: 0, ext: 0, fire: 1, nx: 160, ny: 340, ang: 0, drag: null, parts: [], raf: 0 };
+const EX_STEPS = [
+  ['① 안전핀을 뽑아요', '노란 고리를 잡고 밖으로 쭉 당겨요'],
+  ['② 호스를 불 쪽으로!', '비상구(문)를 등지고 서서, 호스 끝을 파란 동그라미로 옮겨요'],
+  ['③ 손잡이를 꽉 쥐어요', '손잡이를 꾹 누르고 있어요'],
+  ['④ 빗자루 쓸듯 좌우로!', '누른 채로 손가락을 왼쪽·오른쪽으로 움직여요'],
+];
+function say(t) { try { if (!soundOn || !window.speechSynthesis) return; speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = 'ko-KR'; u.rate = .95; speechSynthesis.speak(u); } catch (e) { } }
+function exPt(e) { const r = $('exSvg').getBoundingClientRect(), k = Math.min(r.width / 360, r.height / 420), ox = r.left + (r.width - 360 * k) / 2, oy = r.top + (r.height - 420 * k) / 2; return [(e.clientX - ox) / k, (e.clientY - oy) / k, k, ox, oy]; }
+function exHand(x, y) { const r = $('exSvg').getBoundingClientRect(), k = Math.min(r.width / 360, r.height / 420), ox = (r.width - 360 * k) / 2, oy = (r.height - 420 * k) / 2; const h = $('exHand'); h.style.display = x == null ? 'none' : 'block'; if (x != null) { h.style.left = ox + x * k - 14 + 'px'; h.style.top = oy + y * k - 6 + 'px'; } }
+function exSet(step) {
+  EX.step = step; const sts = document.querySelectorAll('#ext .st');
+  sts.forEach((el, i) => { el.className = 'st' + (i < step ? ' ok' : i === step ? ' on' : ''); el.textContent = i < step ? '✓' : i + 1; });
+  if (step >= 4) { $('exT').textContent = '🎉 불이 꺼졌어요! 소화기 박사!'; $('exS').textContent = '이제 출동할 준비가 됐어요'; exHand(null); say('잘했어요! 불이 꺼졌어요. 이제 출동할 준비가 됐어요'); $('exBack').textContent = '🚒 출동 준비 완료!'; $('exBack').className = 'big'; store.set('gnfire-ext', true); sfx.win(); return; }
+  $('exT').textContent = EX_STEPS[step][0]; $('exS').textContent = EX_STEPS[step][1]; say(EX_STEPS[step][0].slice(2) + '. ' + EX_STEPS[step][1]);
+  $('exPin').classList.toggle('glow', step === 0); $('exNoz').classList.toggle('glow', step === 1); $('exLever').classList.toggle('glow', step === 2);
+  $('exTarget').style.display = step === 1 ? '' : 'none';
+  exHand(...[[44, 140], [EX.nx, EX.ny], [120, 124], [228, 318]][step]);
+}
+function exDraw() {
+  const vx = 118, vy = 152; const n = $('exNoz');
+  n.setAttribute('transform', `translate(${EX.nx} ${EX.ny}) rotate(${EX.ang})`);
+  const tx = EX.nx - Math.sin(EX.ang * Math.PI / 180) * -8, ty = EX.ny + 8;
+  $('exHose').setAttribute('d', `M${vx} ${vy} C ${vx + 60} ${vy + 10}, ${vx + 40} ${Math.max(vy, ty) + 120}, ${tx} ${ty}`);
+  $('exLever').setAttribute('transform', EX.squeezing ? 'rotate(8 86 140)' : '');
+  $('exFireS').setAttribute('transform', `scale(${Math.max(.001, EX.fire) * (1 + Math.sin(performance.now() / 90) * .04)} ${Math.max(.001, EX.fire) * (1 + Math.sin(performance.now() / 70) * .06)})`);
+}
+function exLoop() {
+  const cv = $('exCv'), r = cv.getBoundingClientRect(); if (cv.width !== Math.round(r.width)) { cv.width = r.width; cv.height = r.height; }
+  const g = cv.getContext('2d'), k = Math.min(r.width / 360, r.height / 420), ox = (r.width - 360 * k) / 2, oy = (r.height - 420 * k) / 2; g.clearRect(0, 0, cv.width, cv.height);
+  if (EX.squeezing && EX.step >= 2 && EX.fire > 0) {
+    const a = (EX.ang - 90) * Math.PI / 180; for (let i = 0; i < 6; i++) { const sp = 260 + Math.random() * 120, sa = a + (Math.random() - .5) * .35;
+      EX.parts.push({ x: EX.nx + Math.cos(a) * 34, y: EX.ny + Math.sin(a) * 34, vx: Math.cos(sa) * sp, vy: Math.sin(sa) * sp, l: .7 + Math.random() * .3, r: 4 + Math.random() * 6 }); }
+  }
+  EX.parts = EX.parts.filter(q => (q.l -= 1 / 60) > 0);
+  for (const q of EX.parts) { q.x += q.vx / 60; q.y += q.vy / 60; q.vx *= .97; q.vy = q.vy * .97 + 2; q.r += .35;
+    g.fillStyle = `rgba(255,255,255,${Math.min(.85, q.l)})`; g.beginPath(); g.arc(ox + q.x * k, oy + q.y * k, q.r * k, 0, 7); g.fill(); }
+  exDraw(); EX.raf = requestAnimationFrame(exLoop);
+}
+function openExt() {
+  Object.assign(EX, { pin: false, squeezing: false, sweeps: 0, lastDir: 0, fire: 1, nx: 160, ny: 340, ang: 0, parts: [], drag: null, hold: 0 });
+  $('exPin').setAttribute('transform', ''); $('exPin').style.opacity = 1; $('exBack').textContent = '↩ 로비로'; $('exBack').className = 'big gray';
+  $('ext').classList.remove('hidden'); audio(); exSet(0); cancelAnimationFrame(EX.raf); exLoop();
+}
+$('exBack').onclick = () => { cancelAnimationFrame(EX.raf); try { speechSynthesis.cancel(); } catch (e) { } $('ext').classList.add('hidden'); openLobby(); };
+$('exSay').onclick = () => { if (EX.step < 4) say(EX_STEPS[EX.step][0].slice(2) + '. ' + EX_STEPS[EX.step][1]); };
+$('exStage').addEventListener('pointerdown', e => {
+  const [x, y] = exPt(e); e.preventDefault(); $('exStage').setPointerCapture(e.pointerId);
+  if (EX.step === 0 && Math.hypot(x - 44, y - 140) < 40) EX.drag = { k: 'pin', x0: x, y0: y };
+  else if (EX.step === 1 && Math.hypot(x - EX.nx, y - (EX.ny - 10)) < 50) EX.drag = { k: 'noz', dx: EX.nx - x, dy: EX.ny - y };
+  else if (EX.step === 2 && x > 70 && x < 165 && y > 105 && y < 175) { EX.drag = { k: 'hold', t0: performance.now() }; EX.squeezing = true; sfx.pop(); noise(.6, 3000, 1500, .15, 'bandpass'); }
+  else if (EX.step === 3) { EX.drag = { k: 'sweep', x0: x, ext: x }; EX.lastDir = 0; EX.squeezing = true; hoseSnd.on(.1); }
+});
+$('exStage').addEventListener('pointermove', e => {
+  if (!EX.drag) return; const [x, y] = exPt(e), d = EX.drag;
+  if (d.k === 'pin') { const dx = Math.min(0, x - d.x0) + Math.min(0, 0), dd = Math.hypot(x - d.x0, y - d.y0); $('exPin').setAttribute('transform', `translate(${Math.min(0, x - d.x0)} ${y - d.y0})`);
+    if (dd > 60) { EX.drag = null; $('exPin').style.opacity = 0; sfx.pop(); setTimeout(() => exSet(1), 300); } }
+  else if (d.k === 'noz') { EX.nx = Math.max(150, Math.min(330, x + d.dx)); EX.ny = Math.max(180, Math.min(360, y + d.dy)); EX.ang = Math.max(0, Math.min(80, (EX.nx - 150) / 1.5));
+    if (Math.hypot(EX.nx - 228, EX.ny - 318) < 30) { EX.drag = null; EX.nx = 228; EX.ny = 318; EX.ang = 108; sfx.boing(); setTimeout(() => exSet(2), 300); } }
+  else if (d.k === 'sweep') { EX.ang = 108 + Math.max(-22, Math.min(22, (x - d.x0) / 2.5));
+    if (EX.lastDir === 0) { if (Math.abs(x - d.x0) > 25) { EX.lastDir = Math.sign(x - d.x0); d.ext = x; } }
+    else if (Math.sign(x - d.ext) === EX.lastDir) d.ext = x;
+    else if (Math.abs(x - d.ext) > 25) { EX.lastDir = -EX.lastDir; d.ext = x; EX.sweeps++; EX.fire = Math.max(0, 1 - EX.sweeps / 5); sfx.splash();
+      if (EX.fire <= 0) { EX.squeezing = false; hoseSnd.on(0); EX.drag = null; sfx.out(); exSet(4); return; } } }
+});
+const exUp = () => { const d = EX.drag; EX.drag = null;
+  if (d && d.k === 'hold') { EX.squeezing = false; if (performance.now() - d.t0 > 700) exSet(3); else $('exS').textContent = '조금 더 오래 꾹 눌러요!'; }
+  if (d && d.k === 'sweep') { EX.squeezing = false; hoseSnd.on(0); }
+  if (d && d.k === 'pin') $('exPin').setAttribute('transform', ''); };
+$('exStage').addEventListener('pointerup', exUp); $('exStage').addEventListener('pointercancel', exUp);
+setInterval(() => { if (EX.drag && EX.drag.k === 'hold' && performance.now() - EX.drag.t0 > 900) { EX.drag = null; EX.squeezing = false; exSet(3); } }, 100);
 
 // ================= 게임 상태 =================
 let cur = null;            // 현재 스테이션 번호
@@ -466,7 +646,14 @@ function setupStation(i) {
     if (anims.length) { mixer = new THREE.AnimationMixer(dragonModel); for (const c of anims) mixAct[c.name] = mixer.clipAction(c);
       const base = mixAct.Walk || mixAct.Fly; if (base) base.play(); }
     const ds = s.dragon || (vil.fly ? 6 : 1.6); dragonModel.scale.setScalar(ds); dragonModel.userData.ds = ds; }
-  if (s.kind === 'start') { tip(`${vil.name}이(가) 나타났어요! 앗, ${vil.verb}… 연습으로 꺼 볼까요?`); sfx.found(); setTimeout(sfx.roar, 300); breath = { t: -1.2, dur: 2.2, lit: false }; setTimeout(sfx.breath, 1200); }
+  if (dispatched && alarmAt[course] == null && !done.has(s.st) && s.kind !== 'start') pickFire();
+  const target = alarmAt[course], tname = target != null ? STATION_NAME[target] : '';
+  if (dispatched && s.st !== target) {
+    sfx.found(); setTimeout(sfx.roar, 300);
+    tip(s.kind === 'start' ? `${vil.name}이(가) 웃고 있어요! 불은 ${tname}에 났어요 🗺️` : done.has(s.st) ? `여긴 이미 껐어요 ✅ 지도의 🔥(${tname})로 가요!` : `여긴 아직 괜찮아요! 불은 ${tname}에 났어요 🗺️`);
+    if (target == null) tip('모든 불을 껐어요! 🎉');
+  }
+  else if (s.kind === 'start') { tip(`${vil.name}이(가) 나타났어요! 앗, ${vil.verb}… 연습으로 꺼 볼까요?`); sfx.found(); setTimeout(sfx.roar, 300); breath = { t: -1.2, dur: 2.2, lit: false }; setTimeout(sfx.breath, 1200); }
   else if (done.has(s.st)) { tip(`${STATION_NAME[s.st] || '여기'}는 이미 성공! 그래도 ${vil.name}이(가) 또 왔어요 🔥`); breath = { t: -0.6, dur: 2.2, lit: false }; sfx.roar(); setTimeout(sfx.breath, 600); }
   else { tip(`앗! ${vil.name}이(가) 나타났어요… ${vil.verb}!`); breath = { t: 0, dur: 2.2, lit: false }; sfx.roar(); setTimeout(sfx.breath, 500); }
 }
@@ -496,7 +683,8 @@ function damage(d) {
     animals.forEach(a => a.happy = 1.4);
     floatAt('치익~ 꺼졌다!', p);
     const left = FIRE_STATIONS().filter(n => !done.has(n));
-    if (!left.length) setTimeout(win, 1200);
+    if (!left.length) { alarmAt[course] = null; rebreath = 0; setTimeout(win, 1200); }
+    else if (dispatched) { rebreath = 0; const was = ST[cur].st; alarmAt[course] = null; tip('잘했어요! 불이 꺼졌어요 ✅'); setTimeout(() => { pickFire(was); updMini(); announce(false); }, 3000); }
     else tip(`잘했어요! ${vil.name}이(가) 또 올 거예요. 남은 곳: ${left.map(n => STATION_NAME[n].split(' ')[0]).join(' ')}`);
   }
 }
@@ -509,7 +697,7 @@ function win() {
   $('winmsg').textContent = course === 'in' ? '악당들이 "미안해, 다시는 장난 안 칠게!" 하고 사과했어요.' : '용이 "미안해, 다시는 장난 안 칠게!" 하고 사과했어요.';
   $('win').classList.remove('hidden'); tip('🚒 안전체험관으로 가서 선물을 받으세요!');
 }
-$('reset').onclick = () => { done = new Set(); store.set('gnfire-done', []); store.set('gnfire-code-out', null); store.set('gnfire-code-in', null); won = false; updChips(); $('win').classList.add('hidden'); tip('표식을 비춰 다시 시작해요'); };
+$('reset').onclick = () => { alarmAt = { out: null, in: null }; done = new Set(); store.set('gnfire-done', []); store.set('gnfire-code-out', null); store.set('gnfire-code-in', null); won = false; updChips(); $('win').classList.add('hidden'); openLobby(); };
 function floatAt(t, p) {
   const s = stage.localToWorld(p.clone()).project(camera);
   const el = document.createElement('div'); el.className = 'float'; el.textContent = t;
@@ -567,7 +755,7 @@ addEventListener('resize', () => setTimeout(resizeAR, 300));
 async function startAR() {
   audio();
   if (window.DeviceOrientationEvent && DeviceOrientationEvent.requestPermission) { try { await DeviceOrientationEvent.requestPermission(); } catch (e) { } }
-  $('go').disabled = true; $('go').textContent = '카메라 켜는 중…';
+  $('go').disabled = true; $('lnote').textContent = '카메라 켜는 중…';
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } });
     video.srcObject = stream;
@@ -575,10 +763,9 @@ async function startAR() {
     await video.play().catch(() => { });
     video.setAttribute('width', video.videoWidth); video.setAttribute('height', video.videoHeight);
   } catch (e) {
-    $('go').disabled = false; $('go').textContent = '📷 카메라 켜고 시작';
-    $('note').textContent = '카메라를 켤 수 없어요. 사파리/크롬에서 카메라 권한을 허용해 주세요.'; return;
+    $('go').disabled = false; $('lnote').textContent = '카메라를 켤 수 없어요. 사파리/크롬에서 카메라 권한을 허용해 주세요.'; return;
   }
-  $('go').textContent = '표식 인식 준비 중…';
+  $('lnote').textContent = '표식 인식 준비 중…';
   controller = new Controller({
     inputWidth: video.videoWidth, inputHeight: video.videoHeight, maxTrack: 1, filterMinCF: .0001, filterBeta: .001, warmupTolerance: 3, missTolerance: 8,
     onUpdate: d => {
@@ -599,15 +786,14 @@ async function startAR() {
   setInterval(() => { if (!document.hidden && video.paused) video.play().catch(() => { }); }, 1000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) video.play().catch(() => { }); });
   $('start').classList.add('hidden'); $('scan').classList.remove('hidden'); $('mini').classList.remove('hidden'); updMini();
-  tip('정문 간판(또는 ① 배너)을 비춰 보세요');
   if (location.hash === '#calib') openCalib();
 }
-$('go').onclick = startAR;
+$('go').onclick = openLobby;
 
 // ================= 호스 (꾹 눌러 물 뿌리기) =================
 const hose = { on: false, x: 0, y: 0 };
 const rc = new THREE.Raycaster(), ndc = new THREE.Vector2(), inv = new THREE.Matrix4();
-addEventListener('pointerdown', e => { if (e.target.closest('button,select,input,textarea,.overlay')) return; audio(); hose.on = true; hose.x = e.clientX; hose.y = e.clientY; if (stage.visible) hoseSound(true); });
+addEventListener('pointerdown', e => { if (e.target.closest('button,select,input,textarea,.overlay,#mini,#mapBig,#lobby,#ext')) return; audio(); hose.on = true; hose.x = e.clientX; hose.y = e.clientY; if (stage.visible) hoseSound(true); });
 addEventListener('pointermove', e => { hose.x = e.clientX; hose.y = e.clientY; });
 const hoseOff = () => { hose.on = false; aimRing.visible = false; hoseSound(false); hideJets(); sizzleSnd.on(0); };
 addEventListener('pointerup', hoseOff); addEventListener('pointercancel', hoseOff);
@@ -731,7 +917,7 @@ renderer.setAnimationLoop(() => {
     stage.matrixWorldNeedsUpdate = true; stage.visible = true; stage.updateMatrixWorld(true);
     if (!groundDone) placeOnGround();
   }
-  if (rebreath > 0 && !fire && !breath && cur != null) { rebreath -= dt; if (rebreath <= 0) { breath = { t: 0, dur: 2.2, lit: false }; sfx.roar(); setTimeout(sfx.breath, 400); tip(`앗! ${vil.name}이(가) 또 ${vil.verb}!`); } }
+  if (rebreath > 0 && !fire && !breath && cur != null && (!dispatched || ST[cur].st === alarmAt[course])) { rebreath -= dt; if (rebreath <= 0) { breath = { t: 0, dur: 2.2, lit: false }; sfx.roar(); setTimeout(sfx.breath, 400); tip(`앗! ${vil.name}이(가) 또 ${vil.verb}!`); } }
   // 표식을 오래 못 보면 장면을 내려놓고 다음 장소를 찾게 함 (불이 있으면 더 오래 유지)
   if (lock.has && visibleTarget < 0 && performance.now() - lastSeen > (fire ? 25000 : 12000)) {
     lock.has = false; est.has = false; stage.visible = false; cur = null; fire = null; hideJets(); mapFire = false; updMini(); breath = null; rebreath = 0; hoseOff();
