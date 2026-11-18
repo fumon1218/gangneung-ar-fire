@@ -141,3 +141,11 @@
 | 화면 꺼짐 | 화면 자동 꺼짐 5분 이상 | 자동 잠금 5분 이상 |
 | 발열·배터리 | 80% 이상, 케이스 벗기면 발열↓ | 동일 |
 | 교사 QR 스캔 | 크롬 기록장 📷 스캔 또는 기본 카메라 | 기본 카메라로 인증서 QR |
+
+## 12. 배움의 별(Roblox) 불끄기 던전 — 2026-11-18
+- 사회의 별(SocialPlanet) 포탈 "🧯 불끄기 훈련장" → 전용 교실(DungeonServer 던전 구조 사용). 서버 `ServerScriptService.DungeonServer.FireDrill`(ModuleScript), 화면 `StarterPlayerScripts.FireDrillClient`.
+- PlanetGravity 수정 2곳: 캐릭터 속성 `FaceCam`(몸이 카메라 방향), 플레이어 속성 `CamFirst`(1인칭 카메라).
+- 소화기: 몸통은 몸에 고정, 노즐은 `AimWeld` C0로 카메라 조준을 부드럽게 따라감(뿌릴 때 떨림·반동), 호스는 Beam. 서버에 "aim" 메시지로 다른 사람에게도 보임.
+- 3D 자산(ServerStorage.FireDrillAssets): ExtBody 116027546544217, ExtNozzle 91054148975454, Heater 74125665491136, Plug 72724347335931 (ChatGPT 그림 → Tripo, 각 30크레딧). RecycleBins/Planter/WallClock는 업로드했지만 메시가 깨져 사용 안 함.
+- 참고 그림·초기 소스: `tools/ref/`, `tools/roblox/`(초기본 — 최신본은 Studio 안).
+- Studio 저장(File → Save)은 사용자가 확인 후 직접.
