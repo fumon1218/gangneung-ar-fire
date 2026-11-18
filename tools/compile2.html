@@ -1,0 +1,9 @@
+<!DOCTYPE html><html><body><script type="module">
+import { Compiler } from '/node_modules/mind-ar/dist/mindar-image.prod.js';
+const ck=new URLSearchParams(location.search).get('c');
+const files=await (await fetch(`/c_${ck}/files.json`)).json();
+const imgs=await Promise.all(files.map(f=>new Promise(r=>{const i=new Image(); i.onload=()=>r(i); i.src=`/c_${ck}/`+f;})));
+const c=new Compiler(); await c.compileImageTargets(imgs, p=>{window.__p=p;});
+const buf=c.exportData(); let s=''; const u=new Uint8Array(buf); for(let i=0;i<u.length;i+=32768) s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));
+window.__out=btoa(s);
+</script></body></html>
