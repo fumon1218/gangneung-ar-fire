@@ -593,9 +593,9 @@ const MAP_POS = { 30: [26, 64], 31: [71, 68.5], 20: [19.5, 76.5], 21: [19.5, 29]
 let mapFire = false;
 function mkHTML(big) {
   const c = COURSES[course], here = cur != null ? ST[cur].st : -1, list = (course === 'out' ? [1] : []).concat(c.st);
-  const next = dispatched ? alarmAt[course] : c.st.find(n => !done.has(n));
-  return list.map(n => { const [x, y] = MAP_POS[n]; const st = n === 1 ? 'start' : done.has(n) ? 'done' : (!dispatched || n === next) ? 'fire' : 'calm';
-    const lab = big ? `<div class="lab${n === next ? ' next' : ''}" style="left:${x}%;top:${y}%">${n === 1 ? '★ 시작' : (STATION_NAME[n] || '')}${n === next ? (dispatched ? ' ← 불났어요!' : ' ← 다음!') : ''}</div>` : '';
+  const fin = c.final, finLocked = fin && c.st.some(n => n !== fin && !done.has(n)), now = alarmAt[course];
+  return list.map(n => { const [x, y] = MAP_POS[n]; const locked = n === fin && finLocked; const st = n === 1 ? 'start' : done.has(n) ? 'done' : locked ? 'calm' : 'fire';
+    const lab = big ? `<div class="lab${n === now ? ' next' : ''}" style="left:${x}%;top:${y}%">${n === 1 ? '★ 시작' : (STATION_NAME[n] || '')}${n === now ? ' ← 불나는 중!' : locked ? ' 🔒 마지막' : ''}</div>` : '';
     return `<div class="mk ${st}${n === here ? ' here' : ''}" style="left:${x}%;top:${y}%"></div>${lab}`; }).join('');
 }
 function updMini() {
@@ -604,8 +604,8 @@ function updMini() {
   $('miniMk').innerHTML = mkHTML(false);
   if (!$('mapBig').classList.contains('hidden')) { $('bigMk').innerHTML = mkHTML(true);
     const left = COURSES[course].st.filter(n => !done.has(n)).length;
-    $('mapSum').textContent = !left ? '🎉 모든 불을 껐어요! 안전체험관에서 선물 받기' : dispatched ? (alarmAt[course] != null ? `🚨 ${STATION_NAME[alarmAt[course]]}에 불! (남은 곳 ${left}곳)` : `남은 곳 ${left}곳`) : `🔥 아직 불난 곳 ${left}곳! 주황색 표시로 가 보세요`; }
-  $('mini').classList.toggle('alarm', mapFire || (dispatched && alarmAt[course] != null));
+    $('mapSum').textContent = !left ? '🎉 모든 불을 껐어요! 안전체험관에서 선물 받기' : `🔥 남은 곳 ${left}곳! 가까운 🔥 장소를 비춰 보세요`; }
+  $('mini').classList.toggle('alarm', mapFire);
 }
 $('mini').onclick = () => { $('mapBig').classList.remove('hidden'); updMini(); audio(); chime([523, 659]); };
 $('mapClose').onclick = () => $('mapBig').classList.add('hidden');
@@ -639,12 +639,13 @@ function openLobby() {
 }
 async function dispatch(c) {
   audio(); course = c; updChips(); dispatched = true; won = false;
-  if (alarmAt[course] == null || done.has(alarmAt[course])) pickFire();
+  alarmAt[course] = null;
   $('lobby').classList.add('hidden');
   if (!controller) { await startAR(); if (!controller) { $('lobby').classList.remove('hidden'); return; } }
   else if ((COURSES[course].mind || 'targets.mind') !== mindFile) { tip('📡 ' + COURSES[course].name + ' 장소 정보를 불러오는 중…'); await loadMind(); }
-  if (alarmAt[course] == null) { tip('이 코스의 불은 모두 껐어요! 🎉'); return; }
-  announce(true);
+  if (!COURSES[course].st.some(n => !done.has(n))) { tip('이 코스의 불은 모두 껐어요! 🎉'); return; }
+  siren(); tip('🚨 출동! 지도의 🔥 장소 중 가까운 곳을 비추면 불이 나요'); $('mapBig').classList.remove('hidden'); updMini();
+  clearTimeout(announce.t); announce.t = setTimeout(() => $('mapBig').classList.add('hidden'), 3500);
 }
 window.__dbg = { alarm: n => { alarmAt[course] = n; updMini(); } };
 $('goOut').onclick = () => dispatch('out'); $('goIn').onclick = () => dispatch('in'); $('goYeonsu').onclick = () => dispatch('yeonsu'); $('goCheheom').onclick = () => dispatch('cheheom'); $('goYaoe').onclick = () => dispatch('yaoe');
@@ -903,12 +904,12 @@ function setupStation(i) {
     if (anims.length) { mixer = new THREE.AnimationMixer(dragonModel); for (const c of anims) mixAct[c.name] = mixer.clipAction(c);
       const base = mixAct.Walk || mixAct.Fly; if (base) base.play(); }
     const ds = s.dragon || (vil.fly ? 6 : 1.6); dragonModel.scale.setScalar(ds); dragonModel.userData.ds = ds; }
-  if (dispatched && alarmAt[course] == null && !done.has(s.st) && s.kind !== 'start') pickFire();
+  if (dispatched && s.kind !== 'start' && !done.has(s.st)) { const fin = COURSES[course].final; if (!(fin && s.st === fin && COURSES[course].st.some(n => n !== fin && !done.has(n)))) alarmAt[course] = s.st; }
   const target = alarmAt[course], tname = target != null ? STATION_NAME[target] : '';
   if (dispatched && s.st !== target) {
     sfx.found(); setTimeout(sfx.roar, 300);
-    tip(s.kind === 'start' ? `${vil.name}이(가) 웃고 있어요! 불은 ${tname}에 났어요 🗺️` : done.has(s.st) ? `여긴 이미 껐어요 ✅ 지도의 🔥(${tname})로 가요!` : `여긴 아직 괜찮아요! 불은 ${tname}에 났어요 🗺️`);
-    if (target == null) tip('모든 불을 껐어요! 🎉');
+    const left = COURSES[course].st.filter(n => !done.has(n)).length;
+    tip(!left ? '모든 불을 껐어요! 🎉' : s.kind === 'start' ? `${vil.name}이(가) 웃고 있어요! 지도의 🔥 장소를 비춰요 🗺️` : done.has(s.st) ? `여긴 이미 껐어요 ✅ 다른 🔥 장소를 비춰요 (남은 곳 ${left}곳)` : `🔒 여기는 마지막 장소예요! 다른 곳의 불을 먼저 끄고 와요`);
   }
   else if (s.kind === 'start') { tip(`${vil.name}이(가) 나타났어요! 앗, ${vil.verb}… 연습으로 꺼 볼까요?`); sfx.found(); setTimeout(sfx.roar, 300); breath = { t: -1.2, dur: 2.2, lit: false }; setTimeout(sfx.breath, 1200); }
   else if (done.has(s.st)) { tip(`${STATION_NAME[s.st] || '여기'}는 이미 성공! 그래도 ${vil.name}이(가) 또 왔어요 🔥`); breath = { t: -0.6, dur: 2.2, lit: false }; sfx.roar(); setTimeout(sfx.breath, 600); }
@@ -941,7 +942,8 @@ function damage(d) {
     floatAt('치익~ 꺼졌다!', p);
     const left = FIRE_STATIONS().filter(n => !done.has(n));
     if (!left.length) { alarmAt[course] = null; rebreath = 0; setTimeout(win, 1200); }
-    else if (dispatched) { rebreath = 0; const was = ST[cur].st; alarmAt[course] = null; tip('잘했어요! 불이 꺼졌어요 ✅'); const next = () => { pickFire(was); updMini(); announce(false); }; if (QUIZ[was]) setTimeout(() => showQuiz(was, () => setTimeout(next, 800)), 1500); else setTimeout(next, 3000); }
+    else if (dispatched) { rebreath = 0; const was = ST[cur].st; alarmAt[course] = null; tip('잘했어요! 불이 꺼졌어요 ✅'); const next = () => { const left = COURSES[course].st.filter(n => !done.has(n)), fin = COURSES[course].final; updMini();
+      tip(left.length === 1 && left[0] === fin ? `🚨 마지막 큰 불! ${STATION_NAME[fin]}을 비춰요!` : `🗺️ 남은 곳 ${left.length}곳! 다른 🔥 장소를 비춰 보세요`); }; if (QUIZ[was]) setTimeout(() => showQuiz(was, () => setTimeout(next, 800)), 1500); else setTimeout(next, 3000); }
     else tip(`잘했어요! ${vil.name}이(가) 또 올 거예요. 남은 곳: ${left.map(n => STATION_NAME[n].split(' ')[0]).join(' ')}`);
   }
 }
