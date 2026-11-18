@@ -471,7 +471,7 @@ function loop() {
   for (const p of allP) { p.mat.uniforms.uScale.value = k; p.mat.uniforms.uMax.value = 160 * renderer.getPixelRatio(); p.update(dt); }
   renderer.render(scene, camera);
 }
-pct(10); window.__S = S; window.__P = () => player;
+pct(10); if (/debug/.test(location.search) || /^(localhost|127\.)/.test(location.hostname)) { window.__S = S; window.__P = () => player; }
 buildRoom().then(() => { pct(100); $('loading').classList.add('hidden'); $('go').classList.remove('hidden'); }).catch(e => { $('loading').textContent = '불러오기 실패: ' + e.message; });
 loop();
 

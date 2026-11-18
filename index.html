@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>강릉분원 불 끄기 대작전 AR</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ff6a2b">
+<link rel="apple-touch-icon" href="icon192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root{--ink:#1d2433;--paper:#fffaf2;--fire:#ff6a2b;--water:#2f8fe6}
@@ -105,6 +109,43 @@
   #mapBig h3{margin:4px 0 8px;text-align:center;font-size:20px;color:#7a4a10}
   #mapBig .sum{text-align:center;font-weight:800;color:#c0391b;margin:8px 0 2px;font-size:17px}
   #mapBig button{border:none;background:#2b6fe0;color:#fff;font-size:17px;font-weight:800;border-radius:14px;padding:10px 28px}
+  #set .card{max-width:440px;max-height:88vh;overflow:auto;text-align:left}
+  #set h2{text-align:center;margin:0 0 6px}
+  #set .grp{background:#fff3df;border-radius:14px;padding:10px 12px;margin:8px 0}
+  #set .grp b{display:block;margin-bottom:6px}
+  #set .seg{display:flex;gap:6px}
+  #set .seg button{flex:1;font-family:'Jua',sans-serif;font-size:17px;border:none;border-radius:12px;padding:10px 4px;background:#fff;box-shadow:inset 0 0 0 2px #e8b27a;color:#333}
+  #set .seg button.on{background:#ff7a2f;color:#fff;box-shadow:0 3px 0 #c94a14}
+  #set label.tg{display:flex;align-items:center;gap:10px;font-size:17px;padding:6px 0}
+  #set label.tg input{width:26px;height:26px;accent-color:#ff7a2f}
+  #set input[type=text]{font-size:18px;padding:8px 10px;border-radius:10px;border:2px solid #e8b27a;width:100%;box-sizing:border-box;font-family:inherit}
+  #timer{position:fixed;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:rgba(29,36,51,.85);color:#ffd84a;font-family:'Jua',sans-serif;font-size:22px;border-radius:14px;padding:4px 14px;z-index:6;pointer-events:none}
+  body.quiet #mini.alarm,body.quiet .mk.fire{animation:none!important}
+  body.bigtxt .tip{font-size:23px;padding:14px 22px}
+  body.bigtxt #quiz .opt{font-size:25px;padding:18px}
+  body.bigtxt #quiz h2{font-size:28px}
+  body.bigtxt .card p{font-size:20px}
+  body.hc .tip{background:#000;color:#ffef00;border:3px solid #ffef00}
+  body.hc .card,body.hc #lobby .panel{background:#fff!important;color:#000;border:4px solid #000}
+  body.hc #quiz .opt{box-shadow:inset 0 0 0 4px #000;color:#000}
+  body.pics #quiz .opt{display:flex;align-items:center;gap:14px;text-align:left}
+  #quiz .opt .sym{font-size:44px;line-height:1;flex:none;width:58px;height:58px;display:flex;align-items:center;justify-content:center;background:#fff6e5;border-radius:12px}
+  body:not(.pics) #quiz .opt .sym{display:none}
+  #dex .card,#cert .card{max-width:460px;max-height:90vh;overflow:auto}
+  #dex h3{margin:12px 0 6px;text-align:left}
+  .dgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .dcard{background:#fff;border-radius:14px;padding:6px 4px;box-shadow:0 2px 0 rgba(0,0,0,.12),inset 0 0 0 3px #ffcf33;font-size:13px;line-height:1.2}
+  .dcard img{width:100%;aspect-ratio:1;object-fit:contain;display:block}
+  .dcard.no{box-shadow:inset 0 0 0 2px #ddd;color:#999}
+  .dcard.no img{filter:grayscale(1) brightness(.35);opacity:.5}
+  #certImg{width:100%;border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+  #comic{position:fixed;inset:0;z-index:40;background:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px}
+  #comic .pane{width:min(92vw,58vh);aspect-ratio:2/3;background-size:212.8% 212.8%;border-radius:18px;box-shadow:0 8px 30px rgba(0,0,0,.6);animation:cpop .45s ease}
+  @keyframes cpop{from{transform:scale(.92);opacity:.2}to{transform:none;opacity:1}}
+  #comic .cap{margin-top:12px;background:#fff8ec;color:#1d2433;border-radius:16px;padding:10px 16px;font-family:'Jua',sans-serif;font-size:21px;text-align:center;max-width:92vw;min-height:2.4em}
+  #comic .cbar{display:flex;gap:10px;margin-top:10px}
+  #comic .dots{color:#fff;letter-spacing:6px;margin-top:6px}
+  body.bigtxt #comic .cap{font-size:26px}
   .tip{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);background:rgba(29,36,51,.85);color:#fff;border-radius:16px;padding:10px 18px;font-size:17px;text-align:center;width:max-content;max-width:92vw;z-index:5;pointer-events:none}
   #scan{position:fixed;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;pointer-events:none}
   #scan .frame{width:62vmin;height:80vmin;border:5px dashed rgba(255,255,255,.85);border-radius:24px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:14px;color:#fff;font-family:'Jua',sans-serif;font-size:21px;text-shadow:0 2px 4px #000;animation:pulse 1.6s ease-in-out infinite}
@@ -134,7 +175,9 @@
   #calib{position:fixed;left:8px;right:8px;bottom:8px;z-index:8;background:rgba(255,255,255,.95);border-radius:14px;padding:10px;font-size:13px}
   #calib label{display:flex;align-items:center;gap:6px;margin:3px 0}
   #calib input[type=range]{flex:1}
-  #calib textarea{width:100%;height:60px;font-size:11px}
+  #calib textarea{width:100%;height:44px;font-size:10px}
+  #calib button{flex:1;font-size:13px;border:none;border-radius:10px;padding:8px 2px;background:#ffe2c8}
+  #calib span[id^=v]{width:38px;text-align:right}
 </style>
 <script>// iOS 사파리 확대(두 손가락·두 번 탭) 막기
 (() => { const no = e => e.preventDefault(), o = { passive: false };
@@ -143,6 +186,7 @@
   let last = 0; document.addEventListener('touchend', e => { const n = Date.now(); if (n - last < 320 && !e.target.closest('input,textarea,select')) e.preventDefault(); last = n; }, o);
   document.addEventListener('dblclick', no, o); })();
 </script>
+<script src="lib/qrcode.js"></script>
 <script type="importmap">
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
 </script>
@@ -196,7 +240,9 @@
     <div class="row"><button class="big" id="goOut">🏢 실외 출동</button><button class="big" id="goIn">🏠 실내 출동</button></div>
     <div class="row"><button class="big" id="goYeonsu">🏛 연수동</button><button class="big" id="goCheheom">🧪 체험동</button><button class="big" id="goYaoe">🌲 야외</button></div>
     <p class="small" id="lnote" style="margin:8px 0 0"></p>
-    <button class="big gray" id="lobbyHero" style="margin-top:8px">🐾 친구 바꾸기</button>
+    <div class="row"><button class="big gray" id="lobbyHero" style="margin-top:8px">🐾 친구 바꾸기</button><button class="big gray" id="setBtn" style="margin-top:8px">⚙️ 설정</button></div>
+    <div class="row"><button class="big gray" id="dexBtn" style="margin-top:8px">📖 악당 도감</button><button class="big gray" id="certBtn" style="margin-top:8px">🏅 인증서</button><button class="big gray" id="storyBtn" style="margin-top:8px">🎬 이야기</button></div>
+    <p class="small" id="who" style="margin:6px 0 0"></p>
   </div>
 </div>
 <div id="ext" class="hidden">
@@ -221,6 +267,22 @@
   </div>
   <div class="row" style="display:flex;gap:10px;margin-top:6px"><button class="big gray" id="exBack">↩ 로비로</button><button class="big gray" id="exSay">🔊 다시 듣기</button></div>
 </div>
+<div class="overlay hidden" id="set" style="z-index:30"><div class="card">
+  <h2>⚙️ 설정</h2>
+  <div class="grp"><b>👤 나는 누구?</b><input type="text" id="sName" placeholder="이름 또는 번호" maxlength="12"><input type="text" id="sTeam" placeholder="모둠(팀) 이름 (없으면 비워요)" maxlength="12" style="margin-top:6px"></div>
+  <div class="grp"><b>🎮 난이도</b><div class="seg" id="sMode"><button data-v="easy">🐢 쉬움</button><button data-v="normal">🙂 보통</button><button data-v="challenge">🔥 도전</button></div>
+    <p class="small" id="sModeNote" style="margin:6px 0 0"></p></div>
+  <div class="grp"><b>👀 보기·듣기</b>
+    <label class="tg"><input type="checkbox" id="sQuiet">🤫 조용한 모드 (사이렌·깜빡임 끄기, 소리 작게)</label>
+    <label class="tg"><input type="checkbox" id="sBig">🔠 큰 글씨</label>
+    <label class="tg"><input type="checkbox" id="sHc">🌓 진한 색 (고대비)</label>
+    <label class="tg"><input type="checkbox" id="sRead">🗣 안내 말을 소리로 읽어 주기</label>
+    <label class="tg"><input type="checkbox" id="sTap">👆 한 번 톡 = 계속 뿌리기 (다시 톡 = 멈춤)</label>
+    <label class="tg"><input type="checkbox" id="sPics">🖼 퀴즈를 그림 카드로 보기</label></div>
+  <div class="grp"><b>🧑‍🏫 선생님</b><div class="row" style="display:flex;gap:8px"><a class="big gray" href="teacher.html" style="flex:1;min-width:0;text-decoration:none;text-align:center;font-size:17px">📋 기록 보기</a><button class="big gray" id="sCalib" style="flex:1;min-width:0;font-size:17px">🎯 현장 보정</button></div></div>
+  <button class="big" id="setDone" style="width:100%">확인</button>
+</div></div>
+<div id="timer" class="hidden">⏱ 0:00</div>
 <div class="overlay hidden" id="win">
   <div class="card">
     <h1>🎉 불을 모두 껐어요!</h1>
@@ -233,18 +295,29 @@
     <p><b>안전체험관</b>에 가서 선생님께<br>이 화면을 보여 주고 선물을 받으세요!</p>
     <div class="code" id="code">----</div>
     <div class="small" id="when"></div>
+    <button class="big" id="winCert" style="background:#ffb400;box-shadow:0 4px 0 #b37e00">🏅 나의 인증서 받기</button>
     <button class="big gray" id="reset">처음부터 다시 하기</button>
   </div>
 </div>
 
+<div class="overlay hidden" id="dex" style="z-index:28"><div class="card"><h1>📖 악당 도감</h1><p class="small">불을 끈 장소의 악당 카드가 모여요!</p><div id="dexBody"></div><button class="big" id="dexClose" style="width:100%">닫기</button></div></div>
+<div class="overlay hidden" id="cert" style="z-index:29"><div class="card"><img id="certImg" alt="인증서"><p class="small">사진을 길게 누르면 저장할 수 있어요. 아래 결과 코드를 선생님께 보여 주세요.</p>
+  <div class="code" id="certCode" style="font-size:12px;word-break:break-all"></div>
+  <div style="display:flex;gap:8px"><button class="big blue" id="certSave" style="flex:1;min-width:0;font-size:18px">💾 저장</button><button class="big gray" id="certClose" style="flex:1;min-width:0;font-size:18px">닫기</button></div></div></div>
+<div id="comic" class="hidden"><div class="pane" id="cPane"></div><div class="dots" id="cDots"></div><div class="cap" id="cCap"></div>
+  <div class="cbar"><button class="big gray" id="cSkip" style="min-width:0;font-size:18px">건너뛰기</button><button class="big" id="cNext" style="min-width:0;font-size:20px">다음 ▶</button></div></div>
 <div class="overlay hidden" id="picker"><div class="card"><h1>🐾 친구 고르기</h1><div class="heroes" id="heroGrid2"></div><button class="big blue" id="pickDone">이 친구랑 할래요</button></div></div>
 <div id="calib" class="hidden">
-  <b>현장 보정</b> · 표식을 비춘 채로 불 위치를 맞춘 뒤 아래 값을 복사해 보내 주세요.
-  <label>표식 <select id="cSt"></select></label>
-  <label>좌우 <input type="range" id="cX" min="-12" max="12" step="0.1"><span id="vX"></span>m</label>
-  <label>높이 <input type="range" id="cY" min="-3" max="12" step="0.1"><span id="vY"></span>m</label>
-  <label>앞뒤 <input type="range" id="cZ" min="-10" max="6" step="0.1"><span id="vZ"></span>m</label>
-  <label>불 크기 <input type="range" id="cW" min="0.5" max="6" step="0.1"><span id="vW"></span>m</label>
+  <b>🎯 현장 보정</b> <span class="small">장소를 비춘 채로 막대를 움직이면 바로 바뀌어요. 이 기기에 저장돼요.</span>
+  <label>장소 <select id="cSt"></select></label>
+  <label>불 좌우 <input type="range" id="cX" min="-12" max="12" step="0.1"><span id="vX"></span></label>
+  <label>불 높이 <input type="range" id="cY" min="-4" max="12" step="0.05"><span id="vY"></span></label>
+  <label>불 앞뒤 <input type="range" id="cZ" min="-10" max="6" step="0.1"><span id="vZ"></span></label>
+  <label>불 크기 <input type="range" id="cW" min="0.3" max="6" step="0.1"><span id="vW"></span></label>
+  <label>바닥 높이 <input type="range" id="cG" min="-5" max="1" step="0.05"><span id="vG"></span></label>
+  <label>악당 크기 <input type="range" id="cD" min="0.3" max="9" step="0.1"><span id="vD"></span></label>
+  <label>친구 크기 <input type="range" id="cA" min="0.2" max="1.6" step="0.05"><span id="vA"></span></label>
+  <div style="display:flex;gap:6px;margin-top:4px"><button id="cReset">↩ 이 장소 처음값</button><button id="cCopy">📋 값 복사</button><button id="cFile">💾 파일 받기</button><button id="cClose">닫기</button></div>
   <textarea id="cOut" readonly></textarea>
 </div>
 
@@ -389,7 +462,18 @@ scene.add(camera);
 scene.add(new THREE.HemisphereLight(0xffffff, 0x88774f, 2.2));
 const sun = new THREE.DirectionalLight(0xffffff, 1.6); sun.position.set(0.3, 1, 0.6); scene.add(sun);
 const tipEl = $('tip');
-function tip(t) { tipEl.textContent = t; tipEl.classList.toggle('hidden', !t); }
+// ================= 설정 =================
+const SET = Object.assign({ mode: 'normal', quiet: false, big: false, hc: false, read: false, tap: false, pics: false, name: '', team: '' }, (() => { try { return JSON.parse(localStorage.getItem('gnfire-settings')) || {}; } catch (e) { return {}; } })());
+const MODE = { easy: { dmg: 1.7, grow: .5, note: '불이 천천히 커지고, 조금만 뿌려도 꺼져요.' }, normal: { dmg: 1, grow: 1, note: '보통 세기의 불이에요.' }, challenge: { dmg: .7, grow: 1.8, note: '불이 세요! 시간을 재서 기록이 남아요.' } };
+const M = () => MODE[SET.mode] || MODE.normal;
+function applySet() {
+  const b = document.body.classList; b.toggle('quiet', SET.quiet); b.toggle('bigtxt', SET.big); b.toggle('hc', SET.hc); b.toggle('pics', SET.pics);
+  if (typeof master !== 'undefined' && master) master.gain.value = SET.quiet ? .45 : .9;
+  try { localStorage.setItem('gnfire-settings', JSON.stringify(SET)); } catch (e) { }
+}
+let lastTipSaid = '';
+function tip(t) { tipEl.textContent = t; tipEl.classList.toggle('hidden', !t);
+  if (SET.read && t && t !== lastTipSaid) { lastTipSaid = t; setTimeout(() => { if (!document.querySelector('#quiz:not(.hidden)')) say(t.replace(/[^가-힣a-zA-Z0-9\s?!.,~]/g, ' ')); }, 0); } }
 function updChips() {
   setTimeout(updMini, 0); const c = COURSES[course]; const L = Array.isArray(c.lab) ? c.lab : [...c.lab]; $('prog').innerHTML = (c.icon || '🔥') + ' ' + c.st.map((s, i) => `<span class="chip${done.has(s) ? ' done' : ''}">${L[i]}</span>`).join('');
 }
@@ -404,7 +488,7 @@ void main(){ vA=alpha; vC=color; vec4 mv=modelViewMatrix*vec4(position,1.); gl_P
 const FS = `varying float vA; varying vec3 vC; void main(){ float d=length(gl_PointCoord-.5); if(d>.5) discard; gl_FragColor=vec4(vC, smoothstep(.5,0.,d)*vA); }`;
 class Particles {
   constructor(n, blending, kind) {
-    Object.assign(this, { n, kind, i: 0 });
+    Object.assign(this, { n, kind, i: 0, k: 0 });
     for (const k of ['pos', 'col', 'vel']) this[k] = new Float32Array(n * 3);
     for (const k of ['size', 'alpha', 'life', 'max', 's0', 's1']) this[k] = new Float32Array(n);
     const g = this.g = new THREE.BufferGeometry();
@@ -413,7 +497,7 @@ class Particles {
     this.mat = new THREE.ShaderMaterial({ vertexShader: VS, fragmentShader: FS, transparent: true, depthWrite: false, depthTest: false, blending, uniforms: { uScale: { value: 1 }, uMax: { value: 140 } } });
     const p = new THREE.Points(g, this.mat); p.frustumCulled = false; p.renderOrder = 5; stage.add(p);
   }
-  spawn(p, v, life, s0, s1) { const i = this.i; this.i = (i + 1) % this.n; this.pos.set([p.x, p.y, p.z], i * 3); this.vel.set([v.x, v.y, v.z], i * 3); this.life[i] = this.max[i] = life; this.s0[i] = s0; this.s1[i] = s1; }
+  spawn(p, v, life, s0, s1) { if (SET.quiet && (this.k++ & 1)) return; const i = this.i; this.i = (i + 1) % this.n; this.pos.set([p.x, p.y, p.z], i * 3); this.vel.set([v.x, v.y, v.z], i * 3); this.life[i] = this.max[i] = life; this.s0[i] = s0; this.s1[i] = s1; }
   clear() { this.life.fill(0); }
   update(dt) {
     const grav = this.kind === 'powder' ? -.4 : this.kind === 'water' ? -9.8 : this.kind === 'fire' ? 1.5 : this.kind === 'bubble' ? .25 : this.kind === 'heavy' ? -7 : .6;
@@ -491,7 +575,7 @@ let ac = null, soundOn = true, master = null;
 try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { } // 아이폰 무음 스위치여도 소리 나게
 function audio() {
   if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)();
-    const comp = ac.createDynamicsCompressor(); master = ac.createGain(); master.gain.value = .9; master.connect(comp).connect(ac.destination);
+    const comp = ac.createDynamicsCompressor(); master = ac.createGain(); master.gain.value = SET.quiet ? .45 : .9; master.connect(comp).connect(ac.destination);
     const b = ac.createBuffer(1, 1, 22050), src = ac.createBufferSource(); src.buffer = b; src.connect(master); src.start(); } catch (e) { } }
   if (ac && ac.state !== 'running') ac.resume(); return ac;
 }
@@ -621,7 +705,7 @@ function pickFire(avoid) {
   const fin = COURSES[course].final; if (fin && pool.length > 1) pool = pool.filter(n => n !== fin);
   return alarmAt[course] = pool[Math.floor(Math.random() * pool.length)];
 }
-function siren() { for (let i = 0; i < 4; i++) { tone('sawtooth', 700, 1100, .32, .12, i * .34, 2500); tone('sawtooth', 1100, 700, .32, .1, i * .34 + .17, 2500); } }
+function siren() { if (SET.quiet) { chime([660, 880, 660]); return; } for (let i = 0; i < 4; i++) { tone('sawtooth', 700, 1100, .32, .12, i * .34, 2500); tone('sawtooth', 1100, 700, .32, .1, i * .34 + .17, 2500); } }
 function announce(first) {
   const n = alarmAt[course]; if (n == null) return;
   siren(); try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch (e) { }
@@ -637,6 +721,90 @@ function openLobby() {
   ['goOut', 'goIn', 'goYeonsu', 'goCheheom', 'goYaoe'].forEach(id => $(id).disabled = !ok);
   $('lnote').textContent = ok ? '출동하면 카메라가 켜져요. 지도의 🔥 장소로 가서 비춰요!' : '연습을 마치면 출동 버튼이 켜져요';
 }
+// ================= 학생 기록 · 도감 · 인증서 =================
+const VIL_IMG = k => `vil_${k}.webp`;
+const b64u = t => btoa(String.fromCharCode(...new TextEncoder().encode(t))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const rec = {
+  d: Object.assign({ s: {}, q: {}, x: 0, w: {}, t0: Date.now() }, store.get('gnfire-rec', {})),
+  save() { store.set('gnfire-rec', this.d); },
+  station(st) { if (!this.d.s[st]) { this.d.s[st] = Date.now(); this.save(); } },
+  quiz(st, ok) { if (!(st in this.d.q)) { this.d.q[st] = ok ? 1 : 0; this.save(); } },
+  ext() { if (!this.d.x) { this.d.x = 1; this.save(); } },
+  win(c, secs) { this.d.w[c] = secs || 0; this.save(); },
+  reset() { this.d = { s: {}, q: {}, x: 0, w: {}, t0: Date.now() }; this.save(); },
+  code() { return 'GNF1.' + b64u(JSON.stringify({ n: SET.name, m: SET.team, md: SET.mode, t: this.d.t0, e: Date.now(), s: Object.keys(this.d.s).map(Number), q: this.d.q, x: this.d.x || (store.get('gnfire-ext', false) ? 1 : 0), w: this.d.w })); },
+};
+window.rec = rec;
+function updWho() { $('who').textContent = SET.name ? `👤 ${SET.name}${SET.team ? ' · ' + SET.team + ' 모둠' : ''} · 끈 불 ${Object.keys(rec.d.s).length}곳` : '⚙️ 설정에서 이름을 적으면 인증서에 나와요'; }
+window.updWho = updWho; updWho();
+const vilOf = st => { for (const k in DEFAULT_ST) if (DEFAULT_ST[k].st === st && DEFAULT_ST[k].kind === 'fire') return DEFAULT_ST[k].villain || 'dragon'; return 'dragon'; };
+function openDex() {
+  let h = ''; for (const c in COURSES) { const C = COURSES[c];
+    h += `<h3>${C.icon} ${C.name} <small>(${C.st.filter(n => done.has(n)).length}/${C.st.length})</small></h3><div class="dgrid">` +
+      C.st.map(n => { const v = vilOf(n), ok = done.has(n); return `<div class="dcard${ok ? '' : ' no'}"><img src="${VIL_IMG(v)}" alt=""><b>${ok ? VILLAINS[v].name : '???'}</b><br>${STATION_NAME[n] || n}</div>`; }).join('') + '</div>'; }
+  $('dexBody').innerHTML = h; $('dex').classList.remove('hidden');
+}
+$('dexBtn').onclick = openDex; $('storyBtn').onclick = () => playComic('intro'); $('dexClose').onclick = () => $('dex').classList.add('hidden');
+function qrCanvas(text, px) { const q = qrcode(0, 'L'); q.addData(text); q.make(); const n = q.getModuleCount(), m = Math.floor(px / (n + 4)), c = document.createElement('canvas'); c.width = c.height = m * (n + 4);
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.fillStyle = '#000'; for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (q.isDark(y, x)) g.fillRect((x + 2) * m, (y + 2) * m, m, m); return c; }
+const imgLoad = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; });
+async function makeCert() {
+  try { await document.fonts.load('40px Jua'); } catch (e) { }
+  const W = 1080, H = 1500, c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'), F = (n) => `${n}px Jua, 'Noto Sans KR', sans-serif`;
+  const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, '#fff3d6'); gr.addColorStop(1, '#ffe0b8'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  g.strokeStyle = '#ff7a2f'; g.lineWidth = 22; g.strokeRect(30, 30, W - 60, H - 60); g.strokeStyle = '#ffcf33'; g.lineWidth = 6; g.strokeRect(62, 62, W - 124, H - 124);
+  g.textAlign = 'center'; g.fillStyle = '#c94a14'; g.font = F(44); g.fillText('강릉분원 불 끄기 대작전', W / 2, 160);
+  g.fillStyle = '#b8331a'; g.font = F(96); g.fillText('🚒 꼬마 소방관 인증서', W / 2, 280);
+  g.fillStyle = '#1d2433'; g.font = F(80); g.fillText(SET.name || '이름 없는 영웅', W / 2, 420);
+  if (SET.team) { g.font = F(40); g.fillStyle = '#555'; g.fillText(SET.team + ' 모둠', W / 2, 475); }
+  const nS = Object.keys(rec.d.s).length, qv = Object.values(rec.d.q), nQ = qv.filter(Boolean).length, courses = Object.keys(rec.d.w).map(k => COURSES[k]?.name).filter(Boolean);
+  g.font = F(40); g.fillStyle = '#333';
+  ['위 친구는 악당이 낸 불을 용감하게 끄고', '불이 났을 때의 안전 약속을 잘 배웠기에', '이 인증서를 드립니다.'].forEach((t, i) => g.fillText(t, W / 2, 560 + i * 58));
+  const stats = [[`🔥 ${nS}곳`, '끈 불'], [`⭐ ${nQ}/${qv.length}`, '한 번에 맞힌 퀴즈'], [rec.d.x || store.get('gnfire-ext', false) ? '🧯 완료' : '🧯 -', '소화기 4단계']];
+  stats.forEach(([a, b], i) => { const x = 220 + i * 320; g.fillStyle = '#fff'; g.beginPath(); g.roundRect(x - 140, 760, 280, 150, 26); g.fill(); g.fillStyle = '#c94a14'; g.font = F(52); g.fillText(a, x, 840); g.fillStyle = '#666'; g.font = F(30); g.fillText(b, x, 885); });
+  if (courses.length) { g.fillStyle = '#1d2433'; g.font = F(38); g.fillText('완주한 코스: ' + courses.join(' · '), W / 2, 975); }
+  const vs = [...new Set([...done].map(vilOf))]; const vi = await Promise.all(vs.map(v => imgLoad(VIL_IMG(v))));
+  vi.forEach((im, i) => { if (!im) return; const sz = 150, x = W / 2 - (vs.length * sz) / 2 + i * sz; g.drawImage(im, x, 1000, sz, sz); });
+  const qr = qrCanvas(new URL('teacher.html', location.href).href.split('?')[0] + '#' + rec.code(), 300); g.drawImage(qr, W - 110 - 300, H - 110 - 300, 300, 300);
+  g.textAlign = 'left'; g.fillStyle = '#333'; g.font = F(36); const d = new Date(); g.fillText(`${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`, 120, H - 230);
+  g.font = F(32); g.fillText('강원특별자치도교육청특수교육원', 120, H - 175); g.fillText('강릉분원장', 120, H - 130);
+  return c.toDataURL('image/jpeg', .9);
+}
+async function openCert() { $('cert').classList.remove('hidden'); $('certImg').src = ''; $('certCode').textContent = rec.code(); $('certImg').src = await makeCert(); }
+$('certBtn').onclick = openCert; $('winCert').onclick = openCert; $('certClose').onclick = () => $('cert').classList.add('hidden');
+$('certSave').onclick = () => { const a = document.createElement('a'); a.href = $('certImg').src; a.download = `인증서_${SET.name || '영웅'}.jpg`; a.click(); };
+
+// ================= 이야기 만화 (시작·엔딩) =================
+const COMICS = {
+  intro: { img: 'comic_intro.webp', cap: ['평화로운 강릉분원에 장난꾸러기 악당들이 날아왔어요!', '악당들이 여기저기 작은 불을 붙이고 도망갔어요!', '따르릉! 동물 소방대 출동 준비!', '우리 함께 불을 끄러 가자! 너의 도움이 필요해!'] },
+  ending: { ready: true, img: 'comic_ending.webp', cap: ['불이 모두 꺼졌어요! 무지개가 떴어요 🌈', '악당들이 "미안해, 다시는 장난 안 칠게!" 하고 사과했어요.', '악당들도 소화기 쓰는 법을 함께 배웠어요.', '오늘의 영웅은 바로 너야! 최고! 👍'] },
+};
+function playComic(key, done) {
+  const C = COMICS[key]; let i = 0; const pos = ['2.8% 2.8%', '97.2% 2.8%', '2.8% 97.2%', '97.2% 97.2%'];  // 칸 사이 흰 여백을 살짝 잘라냄
+  const show = () => { const p = $('cPane'); p.style.backgroundImage = `url(${C.img})`; p.style.backgroundPosition = pos[i]; p.style.animation = 'none'; void p.offsetWidth; p.style.animation = '';
+    $('cCap').textContent = C.cap[i]; $('cDots').textContent = pos.map((_, k) => k === i ? '●' : '○').join(''); $('cNext').textContent = i < 3 ? '다음 ▶' : (key === 'intro' ? '출동 준비! 🚒' : '완료 🎉'); say(C.cap[i].replace(/[^가-힣\s?!.,]/g, ' ')); };
+  const end = () => { $('comic').classList.add('hidden'); try { speechSynthesis.cancel(); } catch (e) { } store.set('gnfire-comic-' + key, true); done && done(); };
+  $('cNext').onclick = () => { audio(); if (++i > 3) end(); else show(); }; $('cSkip').onclick = end;
+  $('comic').classList.remove('hidden'); show();
+}
+
+// ⏱ 도전 모드 타이머
+const timer = { t0: 0, id: 0 };
+function timerStart() { timerStop(); if (SET.mode !== 'challenge') return; timer.t0 = Date.now(); $('timer').classList.remove('hidden');
+  timer.id = setInterval(() => { const s = Math.floor((Date.now() - timer.t0) / 1000); $('timer').textContent = `⏱ ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }, 500); }
+function timerStop() { clearInterval(timer.id); $('timer').classList.add('hidden'); return timer.t0 ? Math.round((Date.now() - timer.t0) / 1000) : 0; }
+// ⚙️ 설정 화면
+function openSet() {
+  $('set').classList.remove('hidden'); $('sName').value = SET.name; $('sTeam').value = SET.team;
+  const segs = $('sMode').querySelectorAll('button');
+  const paint = () => { segs.forEach(b => b.classList.toggle('on', b.dataset.v === SET.mode)); $('sModeNote').textContent = M().note; };
+  segs.forEach(b => b.onclick = () => { SET.mode = b.dataset.v; paint(); applySet(); }); paint();
+  [['sQuiet', 'quiet'], ['sBig', 'big'], ['sHc', 'hc'], ['sRead', 'read'], ['sTap', 'tap'], ['sPics', 'pics']].forEach(([id, k]) => { $(id).checked = SET[k]; $(id).onchange = () => { SET[k] = $(id).checked; applySet(); if (k === 'read' && SET.read) say('안내 말을 읽어 줄게요'); }; });
+}
+$('setBtn').onclick = openSet;
+$('setDone').onclick = () => { SET.name = $('sName').value.trim(); SET.team = $('sTeam').value.trim(); applySet(); $('set').classList.add('hidden'); if (window.updWho) updWho(); };
+applySet();
+
 async function dispatch(c) {
   audio(); course = c; updChips(); dispatched = true; won = false;
   alarmAt[course] = null;
@@ -644,10 +812,10 @@ async function dispatch(c) {
   if (!controller) { await startAR(); if (!controller) { $('lobby').classList.remove('hidden'); return; } }
   else if ((COURSES[course].mind || 'targets.mind') !== mindFile) { tip('📡 ' + COURSES[course].name + ' 장소 정보를 불러오는 중…'); await loadMind(); }
   if (!COURSES[course].st.some(n => !done.has(n))) { tip('이 코스의 불은 모두 껐어요! 🎉'); return; }
-  siren(); tip('🚨 출동! 지도의 🔥 장소 중 가까운 곳을 비추면 불이 나요'); $('mapBig').classList.remove('hidden'); updMini();
+  siren(); if (!timer.t0 || SET.mode !== 'challenge' || $('timer').classList.contains('hidden')) timerStart(); tip('🚨 출동! 지도의 🔥 장소 중 가까운 곳을 비추면 불이 나요'); $('mapBig').classList.remove('hidden'); updMini();
   clearTimeout(announce.t); announce.t = setTimeout(() => $('mapBig').classList.add('hidden'), 3500);
 }
-window.__dbg = { alarm: n => { alarmAt[course] = n; updMini(); } };
+if (/debug/.test(location.search) || /^(localhost|127\.)/.test(location.hostname)) window.__dbg = { alarm: n => { alarmAt[course] = n; updMini(); } };
 $('goOut').onclick = () => dispatch('out'); $('goIn').onclick = () => dispatch('in'); $('goYeonsu').onclick = () => dispatch('yeonsu'); $('goCheheom').onclick = () => dispatch('cheheom'); $('goYaoe').onclick = () => dispatch('yaoe');
 $('lobbyHero').onclick = () => { fillGrid($('heroGrid2')); $('picker').classList.remove('hidden'); };
 $('extBtn').onclick = () => openExt();
@@ -666,7 +834,7 @@ function exHand(x, y) { const r = $('exSvg').getBoundingClientRect(), k = Math.m
 function exSet(step) {
   EX.step = step; const sts = document.querySelectorAll('#ext .st');
   sts.forEach((el, i) => { el.className = 'st' + (i < step ? ' ok' : i === step ? ' on' : ''); el.textContent = i < step ? '✓' : i + 1; });
-  if (step >= 4) { $('exT').textContent = '🎉 불이 꺼졌어요! 소화기 박사!'; $('exS').textContent = '이제 출동할 준비가 됐어요'; exHand(null); say('잘했어요! 불이 꺼졌어요. 이제 출동할 준비가 됐어요'); $('exBack').textContent = '🚒 출동 준비 완료!'; $('exBack').className = 'big'; store.set('gnfire-ext', true); sfx.win(); return; }
+  if (step >= 4) { $('exT').textContent = '🎉 불이 꺼졌어요! 소화기 박사!'; $('exS').textContent = '이제 출동할 준비가 됐어요'; exHand(null); say('잘했어요! 불이 꺼졌어요. 이제 출동할 준비가 됐어요'); $('exBack').textContent = '🚒 출동 준비 완료!'; $('exBack').className = 'big'; store.set('gnfire-ext', true); window.rec && rec.ext(); sfx.win(); return; }
   $('exT').textContent = EX_STEPS[step][0]; $('exS').textContent = EX_STEPS[step][1]; say(EX_STEPS[step][0].slice(2) + '. ' + EX_STEPS[step][1]);
   $('exPin').classList.toggle('glow', step === 0); $('exNoz').classList.toggle('glow', step === 1); $('exLever').classList.toggle('glow', step === 2);
   $('exTarget').style.display = step === 1 ? '' : 'none';
@@ -876,8 +1044,10 @@ QUIZ[31] = QUIZ[30];
 function showQuiz(st, done) {
   const Q = QUIZ[st]; $('qQ').textContent = Q.q; $('qWhy').textContent = ''; $('qNext').classList.add('hidden');
   $('qOpts').innerHTML = ''; say(Q.q.replace(/[^가-힣\s?!0-9]/g, ''));
-  Q.o.forEach(([t, ok, why]) => { const b = document.createElement('button'); b.className = 'opt'; b.textContent = t;
-    b.onclick = () => { b.classList.add(ok ? 'ok' : 'no'); $('qWhy').textContent = why; say(why);
+  Q.o.forEach(([t, ok, why]) => { const b = document.createElement('button'); b.className = 'opt';
+    const m = t.match(/^(\p{Extended_Pictographic}[\u{FE0F}\u{200D}\p{Extended_Pictographic}]*)\s*(.*)$/u);
+    b.innerHTML = `<span class="sym">${m ? m[1] : '❔'}</span><span>${m && SET.pics ? m[2] : t}</span>`;
+    b.onclick = () => { rec.quiz(st, ok); b.classList.add(ok ? 'ok' : 'no'); $('qWhy').textContent = why; say(why);
       if (ok) { sfx.win(); $('qNext').classList.remove('hidden'); $('qOpts').querySelectorAll('.opt').forEach(x => x.disabled = true); } else sfx.thump(); };
     $('qOpts').appendChild(b); });
   $('quiz').classList.remove('hidden');
@@ -931,13 +1101,13 @@ function placeOnGround() {
 }
 function firePos() { const f = ST[cur].fire; return V(f[0], f[1], f[2]); }
 function damage(d) {
-  if (!fire) return; fire.hp -= d;
+  if (!fire) return; fire.hp -= d * M().dmg;
   if (fire.hp <= 0) {
     const p = fire.p; fire = null; fireLight.intensity = 0; mapFire = false; setTimeout(updMini, 0);
     for (let i = 0; i < 30; i++) steamP.spawn(p.clone().add(V(rnd(.8), rnd(.4), rnd(.4))), V(rnd(.8), 1.5 + Math.random() * 1.5, rnd(.5)), 1.2 + Math.random() * .6, .6, 1.8);
     rebreath = 6;
     if (ST[cur].kind === 'start') { sfx.out(); animals.forEach(a => a.happy = 1.4); floatAt('연습 성공!', p); tip('잘했어요! 용이 또 불을 뿜으려 해요… 다른 곳(②~⑤)으로 가도 좋아요'); return; }
-    done.add(ST[cur].st); store.set('gnfire-done', [...done]); updChips(); sfx.out();
+    done.add(ST[cur].st); store.set('gnfire-done', [...done]); updChips(); rec.station(ST[cur].st); updWho(); sfx.out();
     animals.forEach(a => a.happy = 1.4);
     floatAt('치익~ 꺼졌다!', p);
     const left = FIRE_STATIONS().filter(n => !done.has(n));
@@ -948,15 +1118,18 @@ function damage(d) {
   }
 }
 function win() {
-  if (won) return; won = true; sfx.win();
+  if (won) return; won = true; sfx.win(); const secs = timerStop(); timer.t0 = 0;
+  if (secs) setTimeout(() => { $('when').textContent += ` · ⏱ 기록 ${Math.floor(secs / 60)}분 ${secs % 60}초`; }, 0);
+  if (window.rec) rec.win(course, secs);
   let code = store.get('gnfire-code-' + course, null);
   if (!code) { code = { c: String(Math.floor(1000 + Math.random() * 9000)), t: Date.now() }; store.set('gnfire-code-' + course, code); }
   $('code').textContent = (COURSES[course].code || '강릉-') + code.c;
   const d = new Date(code.t); $('when').textContent = `완료 시각 ${d.getMonth() + 1}월 ${d.getDate()}일 ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
   $('winmsg').textContent = COURSES[course].final ? '🦸 YOU\'RE HERO! 안전체험관의 "YOU\'RE HERO" 벽 앞에서 사진을 찍어요!' : course === 'out' ? '용이 "미안해, 다시는 장난 안 칠게!" 하고 사과했어요.' : '악당들이 "미안해, 다시는 장난 안 칠게!" 하고 사과했어요.';
-  $('win').classList.remove('hidden'); tip('🚒 안전체험관으로 가서 선물을 받으세요!');
+  const showWin = () => { $('win').classList.remove('hidden'); tip('🚒 안전체험관으로 가서 선물을 받으세요!'); };
+  if (COMICS.ending.ready && !store.get('gnfire-comic-ending', false)) setTimeout(() => playComic('ending', showWin), 900); else showWin();
 }
-$('reset').onclick = () => { alarmAt = {}; done = new Set(); store.set('gnfire-done', []); for (const k in COURSES) store.set('gnfire-code-' + k, null); won = false; updChips(); $('win').classList.add('hidden'); openLobby(); };
+$('reset').onclick = () => { if (!confirm('기록을 지우고 처음부터 할까요? (인증서를 먼저 받아 두세요)')) return; rec.reset(); updWho(); store.set('gnfire-comic-intro', null); store.set('gnfire-comic-ending', null); alarmAt = {}; done = new Set(); store.set('gnfire-done', []); for (const k in COURSES) store.set('gnfire-code-' + k, null); won = false; updChips(); $('win').classList.add('hidden'); openLobby(); };
 function floatAt(t, p) {
   const s = stage.localToWorld(p.clone()).project(camera);
   const el = document.createElement('div'); el.className = 'float'; el.textContent = t;
@@ -977,7 +1150,7 @@ const lock = { m: new THREE.Matrix4(), q: new THREE.Quaternion(), has: false };
 const est = { p: V(), q: new THREE.Quaternion(), s: V(1, 1, 1), has: false, idx: -1, lostAt: 0 };
 const _p = V(), _q = new THREE.Quaternion(), _s = V(), mQ = new THREE.Matrix4();
 const qNow = new THREE.Quaternion(), mTmp = new THREE.Matrix4(), mScale = new THREE.Matrix4();
-let visibleTarget = -1, lastSeen = 0;
+let visibleTarget = -1, lastSeen = 0, noSee = 0;
 
 // ================= MindAR =================
 let controller, postM = [];
@@ -1056,15 +1229,15 @@ async function loadMind() {
   await ctl.dummyRun(video);
   ctl.processVideo(video);
 }
-$('go').onclick = () => TRAIN ? $('trSize').classList.remove('hidden') : openLobby();
+$('go').onclick = () => TRAIN ? $('trSize').classList.remove('hidden') : store.get('gnfire-comic-intro', false) ? openLobby() : ($('start').classList.add('hidden'), playComic('intro', openLobby));
 
 // ================= 호스 (꾹 눌러 물 뿌리기) =================
 const hose = { on: false, x: 0, y: 0 };
 const rc = new THREE.Raycaster(), ndc = new THREE.Vector2(), inv = new THREE.Matrix4();
-addEventListener('pointerdown', e => { if (TRAIN || e.target.closest('button,select,input,textarea,.overlay,#mini,#mapBig,#lobby,#ext,#quiz')) return; audio(); hose.on = true; hose.x = e.clientX; hose.y = e.clientY; if (stage.visible) hoseSound(true); });
+addEventListener('pointerdown', e => { if (TRAIN || e.target.closest('button,select,input,textarea,a,.overlay,#mini,#mapBig,#lobby,#ext,#quiz')) return; audio(); if (SET.tap && hose.on) { hose.on = false; hoseOff(); return; } hose.on = true; hose.x = e.clientX; hose.y = e.clientY; if (stage.visible) hoseSound(true); });
 addEventListener('pointermove', e => { hose.x = e.clientX; hose.y = e.clientY; });
 const hoseOff = () => { hose.on = false; aimRing.visible = false; hoseSound(false); hideJets(); sizzleSnd.on(0); };
-addEventListener('pointerup', hoseOff); addEventListener('pointercancel', hoseOff);
+addEventListener('pointerup', () => { if (!SET.tap) hoseOff(); }); addEventListener('pointercancel', () => { if (!SET.tap) hoseOff(); });
 let sprayAcc = 0, burstT = 0;
 const arc = (from, to, T) => { const v = to.clone().sub(from).divideScalar(T); v.y += 4.9 * T; return v; };
 // 친구마다 다른 물 뿌리기
@@ -1124,19 +1297,28 @@ function hoseUpdate(dt) {
 }
 
 // ================= 보정 모드 (#calib) =================
+const CAL_KEYS = ['fire', 'fireW', 'ground', 'dragon', 'animal'];
+function calibDump() { const out = {}; for (const k in ST) { const d = {}; let ch = false; for (const f of CAL_KEYS) if (JSON.stringify(ST[k][f]) !== JSON.stringify(DEFAULT_ST[k][f])) { d[f] = ST[k][f]; ch = true; } if (ch) out[k] = d; } return out; }
+function placeAnimals(s) { const sc = (s.animal || .8) / .8; animals.forEach((a, k) => { a.g.scale.setScalar(sc * (a.lead ? 1.3 : 1)); const x = [0, -1.3, 1.3][k] * sc; a.g.position.set(x, s.ground, (s.w > 1 ? 1.4 : 1.1) * sc + (a.lead ? .4 * sc : 0)); }); }
 function openCalib() {
-  const c = $('calib'); c.classList.remove('hidden');
-  const sel = $('cSt'); sel.innerHTML = FIRE_TARGETS.map(n => `<option value="${n}">${ST[n].name}</option>`).join(''); if (cur != null && ST[cur].fire) sel.value = cur;
-  const fill = () => { const s = ST[sel.value]; $('cX').value = s.fire[0]; $('cY').value = s.fire[1]; $('cZ').value = s.fire[2]; $('cW').value = s.fireW; show(); };
-  const show = () => { ['X', 'Y', 'Z', 'W'].forEach(k => $('v' + k).textContent = (+$('c' + k).value).toFixed(1));
-    const out = {}; FIRE_TARGETS.forEach(n => out[n] = { fire: ST[n].fire, fireW: ST[n].fireW }); $('cOut').value = JSON.stringify(out); };
-  const apply = () => { const s = ST[sel.value]; s.fire = [+$('cX').value, +$('cY').value, +$('cZ').value]; s.fireW = +$('cW').value;
-    const sv = {}; FIRE_TARGETS.forEach(n => sv[n] = { fire: ST[n].fire, fireW: ST[n].fireW }); store.set('gnfire-calib', sv);
-    if (fire && cur == sel.value) fire.p = firePos(); show(); };
-  sel.onchange = fill; ['cX', 'cY', 'cZ', 'cW'].forEach(k => $(k).oninput = apply); fill();
-  // 보정 중에는 불이 꺼지지 않도록
-  window.__calib = true;
+  const c = $('calib'); c.classList.remove('hidden'); window.__calib = true;
+  const sel = $('cSt'), keys = Object.keys(ST).filter(k => ST[k].fire).sort((a, b) => a - b);
+  sel.innerHTML = keys.map(n => `<option value="${n}">[${COURSES[courseOf(ST[n].st)]?.name || ''}] ${STATION_NAME[ST[n].st] || ''} · ${ST[n].name}</option>`).join('');
+  if (cur != null && ST[cur].fire) sel.value = cur;
+  const F = { X: s => s.fire[0], Y: s => s.fire[1], Z: s => s.fire[2], W: s => s.fireW, G: s => s.ground, D: s => s.dragon || (VILLAINS[s.villain || 'dragon'].fly ? 6 : 1.6), A: s => s.animal || .8 };
+  const fill = () => { const s = ST[sel.value]; for (const k in F) $('c' + k).value = F[k](s); show(); };
+  const show = () => { for (const k in F) $('v' + k).textContent = (+$('c' + k).value).toFixed(2); $('cOut').value = JSON.stringify(calibDump()); };
+  const apply = () => { const s = ST[sel.value]; s.fire = [+$('cX').value, +$('cY').value, +$('cZ').value]; s.fireW = +$('cW').value; s.ground = +$('cG').value; s.dragon = +$('cD').value; s.animal = +$('cA').value;
+    store.set('gnfire-calib', calibDump());
+    if (cur == sel.value) { if (fire) fire.p = firePos(); placeAnimals(s); if (dragonModel) { dragonModel.scale.setScalar(s.dragon); dragonModel.userData.ds = s.dragon; } groundDone = false; }
+    show(); };
+  sel.onchange = fill; for (const k in F) $('c' + k).oninput = apply; fill();
+  $('cReset').onclick = () => { const k = sel.value; for (const f of CAL_KEYS) ST[k][f] = JSON.parse(JSON.stringify(DEFAULT_ST[k][f] ?? null)); if (ST[k].dragon == null) delete ST[k].dragon; if (ST[k].animal == null) delete ST[k].animal; store.set('gnfire-calib', calibDump()); fill(); if (cur == k) setupStation(cur); };
+  $('cCopy').onclick = () => { navigator.clipboard?.writeText($('cOut').value).then(() => tip('보정값을 복사했어요 📋'), () => { $('cOut').select(); document.execCommand('copy'); }); };
+  $('cFile').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(calibDump(), null, 1)], { type: 'application/json' })); a.download = 'gnfire-calib.json'; a.click(); };
+  $('cClose').onclick = () => { c.classList.add('hidden'); window.__calib = false; };
 }
+$('sCalib').onclick = () => { $('set').classList.add('hidden'); $('lobby').classList.add('hidden'); if (!controller) { startAR().then(() => openCalib()); } else openCalib(); tip('🎯 보정할 장소를 비춰요'); };
 
 // ================= 친구 고르기 =================
 function fillGrid(el) {
@@ -1192,6 +1374,7 @@ renderer.setAnimationLoop(() => {
     tip('다음 장소의 건물이나 배너를 비춰 보세요');
   }
   $('scan').classList.toggle('hidden', !controller || lock.has);
+  if (controller && !lock.has && $('lobby').classList.contains('hidden') && $('calib').classList.contains('hidden')) { noSee += dt; if (noSee > 10) { noSee = -20; tip('🔍 잘 안 잡혀요! ① 장소 사진과 같은 방향에서 ② 한두 걸음 뒤로 ③ 밝게 ④ 선생님의 A4 표식 카드를 비춰도 돼요'); } } else noSee = 0;
   const k = V().setFromMatrixScale(stage.matrixWorld).x;
   for (const p of allP) { p.mat.uniforms.uScale.value = innerHeight * renderer.getPixelRatio() * .9 * k; p.mat.uniforms.uMax.value = 110 * renderer.getPixelRatio(); }
 
@@ -1236,7 +1419,7 @@ renderer.setAnimationLoop(() => {
   }
   if (fire) {
     const s = ST[cur]; if (window.__calib) fire.hp = Math.max(fire.hp, 60);
-    fire.grow = Math.min(1, fire.grow + dt * 1.2); const kk = fire.grow * (.35 + .65 * fire.hp / 100), W = s.fireW;
+    fire.grow = Math.min(1, fire.grow + dt * 1.2 * M().grow); const kk = fire.grow * (.35 + .65 * fire.hp / 100), W = s.fireW;
     fireLight.position.copy(fire.p).add(V(0, .5, .5)); fireLight.intensity = (3 + Math.sin(t * 23) * .6 + Math.sin(t * 9) * .4) * kk;
     fire.acc += dt * 150 * kk; while (fire.acc > 1) { fire.acc--;
       fireP.spawn(fire.p.clone().add(V(rnd(W * .45 * kk + .1), rnd(.3), rnd(.25))), V(rnd(.35), 1.4 + Math.random() * 1.6, rnd(.3)), .6 + Math.random() * .5, (W * .75) * kk + .25, .2); }
@@ -1263,5 +1446,6 @@ renderer.setAnimationLoop(() => {
   if (TRAIN && TR.ext && TR.ext.visible) { renderer.autoClear = false; renderer.clearDepth(); renderer.render(extScene, extCam); renderer.autoClear = true; }
 });
 </script>
+<script>if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });</script>
 </body>
 </html>
