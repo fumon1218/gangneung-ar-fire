@@ -147,6 +147,13 @@
   #comic .dots{color:#fff;letter-spacing:6px;margin-top:6px}
   body.bigtxt #comic .cap{font-size:26px}
   .tip{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);background:rgba(29,36,51,.85);color:#fff;border-radius:16px;padding:10px 18px;font-size:17px;text-align:center;width:max-content;max-width:92vw;z-index:5;pointer-events:none}
+  #hereBtn{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(max(16px,env(safe-area-inset-bottom)) + 70px);z-index:7;border:none;border-radius:20px;padding:14px 22px;background:#ff6a2b;color:#fff;font-family:'Jua',sans-serif;font-size:21px;box-shadow:0 5px 0 #c4441a,0 8px 20px rgba(0,0,0,.35);white-space:nowrap}
+  #hereBtn.small{left:auto;right:12px;transform:none;font-size:15px;padding:9px 12px;bottom:calc(max(16px,env(safe-area-inset-bottom)) + 150px);opacity:.85}
+  #mapBig.pick .mk.fire,#mapBig.pick .lab.pk{pointer-events:auto;cursor:pointer}
+  #mapBig.pick .mk.fire{box-shadow:0 0 0 4px #fff,0 0 0 8px rgba(255,106,43,.6);animation:pk .7s infinite alternate}
+  @keyframes pk{to{box-shadow:0 0 0 4px #fff,0 0 0 14px rgba(255,106,43,.15)}}
+  #mapBig .pickNote{display:none;text-align:center;font-weight:800;color:#fff;background:#ff6a2b;border-radius:12px;padding:6px 10px;margin:0 0 8px}
+  #mapBig.pick .pickNote{display:block}
   #scan{position:fixed;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;pointer-events:none}
   #scan .frame{width:62vmin;height:80vmin;border:5px dashed rgba(255,255,255,.85);border-radius:24px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:14px;color:#fff;font-family:'Jua',sans-serif;font-size:21px;text-shadow:0 2px 4px #000;animation:pulse 1.6s ease-in-out infinite}
   @keyframes pulse{50%{transform:scale(1.04)}}
@@ -194,11 +201,12 @@
 <body>
 <video id="cam" playsinline muted autoplay></video>
 <div id="mini" class="hidden" aria-label="지도 크게 보기"><div class="mapbox"><img id="miniImg" alt=""><div id="miniMk"></div></div></div>
-<div id="mapBig" class="hidden"><div class="card2"><h3>🗺️ 불난 곳 지도</h3><div class="mapbox"><img id="bigImg" alt=""><div id="bigMk"></div></div><p class="sum" id="mapSum"></p></div><button id="mapClose">닫기</button></div>
+<div id="mapBig" class="hidden"><div class="card2"><h3>🗺️ 불난 곳 지도</h3><p class="pickNote">📍 지금 내가 있는 곳의 🔥를 눌러요!</p><div class="mapbox"><img id="bigImg" alt=""><div id="bigMk"></div></div><p class="sum" id="mapSum"></p></div><button id="mapClose">닫기</button></div>
 <div class="hud">
   <div class="pill" id="prog">🔥 <span class="chip" data-s="2">②</span><span class="chip" data-s="3">③</span><span class="chip" data-s="4">④</span><span class="chip" data-s="5">⑤</span></div>
   <div style="display:flex;gap:6px"><button class="pill btn" id="pickBtn" aria-label="친구 바꾸기">🐾</button><button class="pill btn" id="sound" aria-label="소리 켜고 끄기">🔊</button></div>
 </div>
+<button id="hereBtn" class="hidden">📍 지금 여기서 불 끄기</button>
 <div id="scan" class="hidden"><div class="frame">건물이나 배너를 이 칸에 맞춰 비춰요</div></div>
 <div class="tip hidden" id="tip"></div>
 
@@ -449,7 +457,7 @@ const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const rnd = (a = 1) => (Math.random() * 2 - 1) * a;
 const video = $('cam');
 const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(1.5, devicePixelRatio));
+renderer.setPixelRatio(Math.min(1, devicePixelRatio)); // 🔋 발열 줄이기
 renderer.domElement.addEventListener('webglcontextlost', e => { e.preventDefault(); tip('화면을 다시 불러와요…'); setTimeout(() => location.reload(), 800); });
 addEventListener('contextmenu', e => e.preventDefault());
 renderer.setSize(innerWidth, innerHeight);
@@ -679,8 +687,8 @@ function mkHTML(big) {
   const c = COURSES[course], here = cur != null ? ST[cur].st : -1, list = (course === 'out' ? [1] : []).concat(c.st);
   const fin = c.final, finLocked = fin && c.st.some(n => n !== fin && !done.has(n)), now = alarmAt[course];
   return list.map(n => { const [x, y] = MAP_POS[n]; const locked = n === fin && finLocked; const st = n === 1 ? 'start' : done.has(n) ? 'done' : locked ? 'calm' : 'fire';
-    const lab = big ? `<div class="lab${n === now ? ' next' : ''}" style="left:${x}%;top:${y}%">${n === 1 ? '★ 시작' : (STATION_NAME[n] || '')}${n === now ? ' ← 불나는 중!' : locked ? ' 🔒 마지막' : ''}</div>` : '';
-    return `<div class="mk ${st}${n === here ? ' here' : ''}" style="left:${x}%;top:${y}%"></div>${lab}`; }).join('');
+    const lab = big ? `<div class="lab${n === now ? ' next' : ''}${st === 'fire' ? ' pk' : ''}" data-n="${n}" style="left:${x}%;top:${y}%">${n === 1 ? '★ 시작' : (STATION_NAME[n] || '')}${n === now ? ' ← 불나는 중!' : locked ? ' 🔒 마지막' : ''}</div>` : '';
+    return `<div class="mk ${st}${n === here ? ' here' : ''}" data-n="${n}" style="left:${x}%;top:${y}%"></div>${lab}`; }).join('');
 }
 function updMini() {
   const src = `map_${course}.webp`;
@@ -688,11 +696,58 @@ function updMini() {
   $('miniMk').innerHTML = mkHTML(false);
   if (!$('mapBig').classList.contains('hidden')) { $('bigMk').innerHTML = mkHTML(true);
     const left = COURSES[course].st.filter(n => !done.has(n)).length;
-    $('mapSum').textContent = !left ? '🎉 모든 불을 껐어요! 안전체험관에서 선물 받기' : `🔥 남은 곳 ${left}곳! 가까운 🔥 장소를 비춰 보세요`; }
+    $('mapSum').textContent = !left ? '🎉 모든 불을 껐어요! 안전체험관에서 선물 받기' : `🔥 남은 곳 ${left}곳! 🔥 장소에 가서 📍 버튼을 눌러요`; }
   $('mini').classList.toggle('alarm', mapFire);
 }
 $('mini').onclick = () => { $('mapBig').classList.remove('hidden'); updMini(); audio(); chime([523, 659]); };
-$('mapClose').onclick = () => $('mapBig').classList.add('hidden');
+$('mapClose').onclick = () => { $('mapBig').classList.add('hidden'); $('mapBig').classList.remove('pick'); };
+// ================= 📍 지금 여기서 (사진 인식 없이 바로 시작) =================
+// 지도에서 지금 있는 장소를 고르면, 카메라가 보는 쪽 3m 앞 바닥에 악당과 불이 나타나요 (자이로로 고정).
+let hereMode = false, mindPaused = false;
+function pauseMind() { if (controller && !mindPaused) { try { controller.stopProcessVideo(); } catch (e) { } mindPaused = true; } }
+function resumeMind() { if (controller && mindPaused) { mindPaused = false; try { controller.processVideo(video); } catch (e) { } } }
+function hereStation(n) {
+  const k = 9000 + n;
+  if (!ST[k]) {
+    let base = null; for (const i in ST) if (ST[i].st === n && ST[i].kind === 'fire') { base = ST[i]; break; }
+    if (!base) return null;
+    const fly = VILLAINS[base.villain || 'dragon'].fly;
+    ST[k] = Object.assign({}, base, { name: (STATION_NAME[n] || '') + ' (여기서)', w: 1, ground: 0, fire: [0, .35, 0], fireW: 1.3, dragon: fly ? 1.8 : .85, animal: .6, center: [0, 2.2, -.8], R: fly ? 2 : 1.1, walk: [0, 0, -1.6], here: true });
+  }
+  return k;
+}
+function hereAt(n) {
+  const c = COURSES[course], fin = c.final;
+  if (done.has(n)) { tip('여긴 이미 껐어요 ✅ 다른 🔥 장소를 골라요'); return; }
+  if (fin && n === fin && c.st.some(m => m !== fin && !done.has(m))) { tip('🔒 마지막 장소는 다른 불을 다 끈 뒤에 열려요'); return; }
+  const k = hereStation(n); if (k == null) return;
+  $('mapBig').classList.add('hidden'); $('mapBig').classList.remove('pick');
+  if (gyro.ok) devQ(qNow); else qNow.identity();
+  const fwd = V(0, 0, -1).applyQuaternion(qNow); fwd.y = 0; if (fwd.lengthSq() < 1e-4) fwd.set(0, 0, -1); fwd.normalize();
+  const K = 1000, Dm = 4.2;
+  est.p.copy(fwd).multiplyScalar(Dm).add(V(0, -EYE, 0)).multiplyScalar(K);
+  est.q.setFromAxisAngle(V(0, 1, 0), Math.atan2(-fwd.x, -fwd.z));
+  est.s.set(K, K, K); est.idx = k; est.n = 99; est.has = true; lock.has = true;
+  visibleTarget = k; lastSeen = performance.now(); hereMode = true; groundDone = true;
+  pauseMind();
+  cur = null; setupStation(k); groundDone = true;
+  if (!running) running = true;
+}
+function releaseHere() {
+  if (!hereMode) return;
+  hereMode = false; lock.has = false; est.has = false; stage.visible = false; cur = null; fire = null; visibleTarget = -1; hideJets(); breath = null; rebreath = 0;
+  resumeMind();
+}
+$('hereBtn').onclick = () => {
+  audio(); const c = COURSES[course];
+  const open = c.st.filter(n => !done.has(n) && !(c.final && n === c.final && c.st.some(m => m !== c.final && !done.has(m))));
+  if (open.length === 1) { hereAt(open[0]); return; }
+  $('mapBig').classList.add('pick'); $('mapBig').classList.remove('hidden'); clearTimeout(announce.t); updMini();
+};
+$('bigMk').addEventListener('click', e => {
+  const m = e.target.closest('[data-n]'); if (!m || !$('mapBig').classList.contains('pick')) return;
+  hereAt(+m.dataset.n);
+});
 
 
 // ================= 로비 · 출동 =================
@@ -812,7 +867,7 @@ async function dispatch(c) {
   if (!controller) { await startAR(); if (!controller) { $('lobby').classList.remove('hidden'); return; } }
   else if ((COURSES[course].mind || 'targets.mind') !== mindFile) { tip('📡 ' + COURSES[course].name + ' 장소 정보를 불러오는 중…'); await loadMind(); }
   if (!COURSES[course].st.some(n => !done.has(n))) { tip('이 코스의 불은 모두 껐어요! 🎉'); return; }
-  siren(); if (!timer.t0 || SET.mode !== 'challenge' || $('timer').classList.contains('hidden')) timerStart(); tip('🚨 출동! 지도의 🔥 장소 중 가까운 곳을 비추면 불이 나요'); $('mapBig').classList.remove('hidden'); updMini();
+  siren(); if (!timer.t0 || SET.mode !== 'challenge' || $('timer').classList.contains('hidden')) timerStart(); tip('🚨 출동! 🔥 장소에 가서 📍 "지금 여기서 불 끄기"를 눌러요 (사진을 비춰도 돼요)'); $('mapBig').classList.remove('hidden'); updMini();
   clearTimeout(announce.t); announce.t = setTimeout(() => $('mapBig').classList.add('hidden'), 3500);
 }
 if (/debug/.test(location.search) || /^(localhost|127\.)/.test(location.hostname)) window.__dbg = { alarm: n => { alarmAt[course] = n; updMini(); } };
@@ -1112,8 +1167,8 @@ function damage(d) {
     floatAt('치익~ 꺼졌다!', p);
     const left = FIRE_STATIONS().filter(n => !done.has(n));
     if (!left.length) { alarmAt[course] = null; rebreath = 0; setTimeout(win, 1200); }
-    else if (dispatched) { rebreath = 0; const was = ST[cur].st; alarmAt[course] = null; tip('잘했어요! 불이 꺼졌어요 ✅'); const next = () => { const left = COURSES[course].st.filter(n => !done.has(n)), fin = COURSES[course].final; updMini();
-      tip(left.length === 1 && left[0] === fin ? `🚨 마지막 큰 불! ${STATION_NAME[fin]}을 비춰요!` : `🗺️ 남은 곳 ${left.length}곳! 다른 🔥 장소를 비춰 보세요`); }; if (QUIZ[was]) setTimeout(() => showQuiz(was, () => setTimeout(next, 800)), 1500); else setTimeout(next, 3000); }
+    else if (dispatched) { rebreath = 0; const was = ST[cur].st; alarmAt[course] = null; tip('잘했어요! 불이 꺼졌어요 ✅'); const next = () => { releaseHere(); resumeMind(); const left = COURSES[course].st.filter(n => !done.has(n)), fin = COURSES[course].final; updMini();
+      tip(left.length === 1 && left[0] === fin ? `🚨 마지막 큰 불! ${STATION_NAME[fin]}으로 가서 📍 버튼을 눌러요!` : `🗺️ 남은 곳 ${left.length}곳! 다른 🔥 장소로 가서 📍 버튼을 눌러요`); }; if (QUIZ[was]) setTimeout(() => showQuiz(was, () => setTimeout(next, 800)), 1500); else setTimeout(next, 3000); }
     else tip(`잘했어요! ${vil.name}이(가) 또 올 거예요. 남은 곳: ${left.map(n => STATION_NAME[n].split(' ')[0]).join(' ')}`);
   }
 }
@@ -1155,6 +1210,7 @@ let visibleTarget = -1, lastSeen = 0, noSee = 0;
 // ================= MindAR =================
 let controller, postM = [];
 function anchorFound(idx, worldMatrix) {
+  if (hereMode) return;
   const m = new THREE.Matrix4(); m.elements = [...worldMatrix]; m.multiply(postM[idx]);
   const s = ST[idx]; mScale.makeScale(1 / s.w, 1 / s.w, 1 / s.w); m.multiply(mScale); // 내부 단위 = m
   // 카메라 기준 → 실제 공간 기준
@@ -1164,6 +1220,7 @@ function anchorFound(idx, worldMatrix) {
   if (fresh) { est.p.copy(_p); est.q.copy(_q); est.s.copy(_s); est.idx = idx; est.n = 0; }
   else { const a = est.n < 8 ? .3 : .06; est.p.lerp(_p, a); est.q.slerp(_q, a); est.s.lerp(_s, a); }
   est.n = (est.n || 0) + 1; est.has = true; lock.has = true;
+  if (est.n >= 45 && !TRAIN) pauseMind(); // 🔋 자리를 잡았으면 사진 인식은 쉬고 자이로로만 붙잡기 (발열 줄이기)
   visibleTarget = idx; lastSeen = performance.now();
   if (cur == null || ST[cur].st !== ST[idx].st) setupStation(idx); else if (cur !== idx) { cur = idx; if (fire) fire.p = firePos(); }
   if (!running) running = true;
@@ -1189,7 +1246,7 @@ async function startAR() {
   if (window.DeviceOrientationEvent && DeviceOrientationEvent.requestPermission) { try { await DeviceOrientationEvent.requestPermission(); } catch (e) { } }
   $('go').disabled = true; $('lnote').textContent = '카메라 켜는 중…';
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } });
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } } });
     video.srcObject = stream;
     await new Promise(r => video.readyState >= 1 ? r() : video.addEventListener('loadedmetadata', r, { once: true }));
     await video.play().catch(() => { });
@@ -1209,6 +1266,7 @@ let mindFile = null, mindOff = 0;
 async function loadMind() {
   const want = COURSES[course].mind || 'targets.mind', off = COURSES[course].off || 0;
   if (controller) { try { controller.stopProcessVideo(); } catch (e) { } }
+  hereMode = false; mindPaused = false;
   lock.has = false; est.has = false; stage.visible = false; cur = null; fire = null; visibleTarget = -1;
   const ctl = new Controller({
     inputWidth: video.videoWidth, inputHeight: video.videoHeight, maxTrack: 1, filterMinCF: .0001, filterBeta: .001, warmupTolerance: 3, missTolerance: 8,
@@ -1356,7 +1414,9 @@ Promise.all(files.map(loadModel)).then(([dS, pup, bun, pen, gol, pho, bos, mum, 
   $('go').classList.remove('hidden');
 }).catch(e => { $('loading').textContent = '불러오기에 실패했어요. 새로고침해 주세요.'; console.error(e); });
 
-renderer.setAnimationLoop(() => {
+let lastFrame = 0;
+renderer.setAnimationLoop(now => {
+  if (now - lastFrame < 30) return; lastFrame = now; // 🔋 30fps로 제한
   const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime; uTime.value = t;
   if (mixer) mixer.update(dt);
   // 무대 위치: 표식이 보이면 그대로, 안 보이면 자이로로 붙잡아 두기
@@ -1369,11 +1429,12 @@ renderer.setAnimationLoop(() => {
   }
   if (rebreath > 0 && !fire && !breath && cur != null && (!dispatched || ST[cur].st === alarmAt[course])) { rebreath -= dt; if (rebreath <= 0) { breath = { t: 0, dur: 2.2, lit: false }; sfx.roar(); setTimeout(sfx.breath, 400); tip(`앗! ${vil.name}이(가) 또 ${vil.verb}!`); } }
   // 표식을 오래 못 보면 장면을 내려놓고 다음 장소를 찾게 함 (불이 있으면 더 오래 유지)
-  if (lock.has && visibleTarget < 0 && performance.now() - lastSeen > (fire ? 25000 : 12000)) {
+  if (lock.has && !hereMode && !mindPaused && visibleTarget < 0 && performance.now() - lastSeen > (fire ? 25000 : 12000)) {
     lock.has = false; est.has = false; stage.visible = false; cur = null; fire = null; hideJets(); mapFire = false; updMini(); breath = null; rebreath = 0; hoseOff();
     tip('다음 장소의 건물이나 배너를 비춰 보세요');
   }
   $('scan').classList.toggle('hidden', !controller || lock.has);
+  $('hereBtn').classList.toggle('small', !!fire); $('hereBtn').classList.toggle('hidden', TRAIN || !controller || !dispatched || !$('lobby').classList.contains('hidden') || !$('mapBig').classList.contains('hidden') || !$('quiz').classList.contains('hidden') || !$('win').classList.contains('hidden'));
   if (controller && !lock.has && $('lobby').classList.contains('hidden') && $('calib').classList.contains('hidden')) { noSee += dt; if (noSee > 10) { noSee = -20; tip('🔍 잘 안 잡혀요! ① 장소 사진과 같은 방향에서 ② 한두 걸음 뒤로 ③ 밝게 ④ 선생님의 A4 표식 카드를 비춰도 돼요'); } } else noSee = 0;
   const k = V().setFromMatrixScale(stage.matrixWorld).x;
   for (const p of allP) { p.mat.uniforms.uScale.value = innerHeight * renderer.getPixelRatio() * .9 * k; p.mat.uniforms.uMax.value = 110 * renderer.getPixelRatio(); }
