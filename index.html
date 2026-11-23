@@ -1196,8 +1196,29 @@ function floatAt(t, p) {
 const gyro = { a: 0, b: 0, g: 0, ok: false };
 addEventListener('deviceorientation', e => { if (e.alpha == null) return; gyro.a = e.alpha; gyro.b = e.beta; gyro.g = e.gamma; gyro.ok = true; });
 const D = THREE.MathUtils.DEG2RAD, eul = new THREE.Euler(), q1 = new THREE.Quaternion(-Math.sqrt(.5), 0, 0, Math.sqrt(.5)), qz = new THREE.Quaternion(), zee = V(0, 0, 1);
+// 화면 회전각: iPad(특히 '데스크탑 웹사이트' 모드)는 가로에서도 0을 주는 경우가 있어 화면 비율·중력으로 보정
+const _qr = new THREE.Quaternion(), _up = V();
+let lastLand = 0;
+function screenAngle() {
+  let a = null;
+  const so = screen.orientation;
+  if (so && typeof so.type === 'string' && /landscape|portrait/.test(so.type) && typeof so.angle === 'number') a = so.angle;
+  if (a == null && typeof window.orientation === 'number') a = window.orientation;
+  if (a == null) a = 0;
+  a = ((Math.round(a / 90) * 90) % 360 + 360) % 360;
+  const land = innerWidth > innerHeight, aLand = a === 90 || a === 270;
+  if (land === aLand) { if (land) lastLand = a; return a; }
+  if (!land) return 0; // 세로 화면인데 가로각 → 세로로
+  // 가로 화면인데 0/180 보고 → 중력 방향으로 판단 (원래 가로형 안드로이드 태블릿은 0이 맞음)
+  if (!gyro.ok) return a;
+  eul.set(gyro.b * D, gyro.a * D, -gyro.g * D, 'YXZ'); _qr.setFromEuler(eul).multiply(q1);
+  _up.set(0, 1, 0).applyQuaternion(_qr.invert());
+  if (Math.abs(_up.x) > Math.abs(_up.y) + .15) lastLand = _up.x > 0 ? 90 : 270;
+  else if (Math.abs(_up.y) > Math.abs(_up.x) + .15) lastLand = a;
+  return lastLand;
+}
 function devQ(out) {
-  const orient = (screen.orientation?.angle ?? window.orientation ?? 0) * D;
+  const orient = screenAngle() * D;
   eul.set(gyro.b * D, gyro.a * D, -gyro.g * D, 'YXZ'); out.setFromEuler(eul); out.multiply(q1); out.multiply(qz.setFromAxisAngle(zee, -orient)); return out;
 }
 const lock = { m: new THREE.Matrix4(), q: new THREE.Quaternion(), has: false };
@@ -1244,6 +1265,7 @@ addEventListener('resize', () => setTimeout(resizeAR, 300));
 async function startAR() {
   audio();
   if (window.DeviceOrientationEvent && DeviceOrientationEvent.requestPermission) { try { await DeviceOrientationEvent.requestPermission(); } catch (e) { } }
+  if (window.DeviceMotionEvent && DeviceMotionEvent.requestPermission) { try { await DeviceMotionEvent.requestPermission(); } catch (e) { } }
   $('go').disabled = true; $('lnote').textContent = '카메라 켜는 중…';
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } } });
